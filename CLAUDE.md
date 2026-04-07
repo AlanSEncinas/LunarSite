@@ -1,0 +1,120 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+**LunarSite** — an end-to-end ML pipeline for lunar south pole landing site selection. Three-stage architecture: (1) Crater Detection CNN, (2) Terrain Hazard Segmentation, (3) XGBoost Landing Site Scorer with SHAP explainability. Python-only. Portfolio project by Alan.
+
+**Current status:** Phase 1 in progress. Stage 2 baseline trained (U-Net + ResNet-34, mIoU 0.48). Enhanced pipeline with DINOv2 encoder, dark terrain analysis, and ShadowCam integration under development.
+
+## Commands
+
+```bash
+# Environment setup
+pip install -r requirements.txt
+pip install -e .  # editable install for lunarsite package
+
+# Training scripts (once implemented)
+python scripts/train_segmenter.py        # Stage 2: terrain segmentation
+python scripts/train_crater_detector.py  # Stage 1: crater detection
+python scripts/train_scorer.py           # Stage 3: XGBoost site scorer
+python scripts/run_pipeline.py           # Full end-to-end pipeline
+
+# Data download
+python scripts/download_data.py
+
+# Tests
+pytest tests/
+pytest tests/test_models.py -k "test_unet"  # Single test
+```
+
+## Architecture
+
+Four-module pipeline with dark terrain analysis:
+
+1. **Stage 1 — Crater Detection (PyTorch):** U-Net on 256x256/512x512 DEM tiles → crater masks/detections with position + radius. Feeds `crater_density`, `crater_min_dist`, `avg_crater_radius` into Stage 3.
+
+2. **Stage 2 — Terrain Segmentation (PyTorch):** DINOv2 encoder (or ResNet-34 baseline) on 480x480 RGB lunar images → per-pixel classification {background, small rocks, large rocks, sky}. Dice+CE loss, AdamW with cosine annealing. Lunar-specific augmentations (shadow rotation, extreme contrast, Hapke BRDF). Feeds `rock_coverage_pct`, `large_rock_count`, `shadow_coverage_pct` into Stage 3. MC Dropout uncertainty maps for confidence-weighted features.
+
+3. **Dark Terrain Module — Depth & Enhancement:** Depth Anything V2 for monocular depth, shadow geometry for physics-based depth (`depth = shadow_length * tan(sun_elevation)`), HORUS-style denoising for PSR imagery, illumination decomposition (albedo/shading separation). Feeds `depth_from_shadow`, `psr_fraction`, `segmentation_confidence` into Stage 3.
+
+4. **Stage 3 — Site Scorer (XGBoost):** 100mx100m grid cells over 80S-90S. 22+ features from LOLA + Diviner thermal + Mini-RF SAR + Stage 1/2 outputs + dark terrain features. Rule-based pseudo-labels from NASA CASSA thresholds (slope <=5deg, illumination >=33%, Earth visibility >=50%). SHAP for explainability.
+
+## Key Technical Decisions
+
+- **Build order:** Stage 2 first (Kaggle dataset is ready, simpler pipeline), then Stage 1, then Stage 3.
+- **Package layout:** `src/lunarsite/` with editable install via `setup.py`.
+- **Segmentation encoders:** DINOv2 (primary, domain-agnostic ViT) or ResNet-34 via `segmentation_models_pytorch` (baseline).
+- **Dark terrain analysis:** Depth Anything V2 for monocular depth, shadow geometry for physics-based depth, HORUS-style denoising for PSR imagery.
+- **Uncertainty:** MC Dropout with mutual information for epistemic uncertainty, flagging low-confidence predictions in shadowed regions.
+- **Augmentations:** Lunar-specific shadow rotation, extreme contrast, Hapke BRDF perturbation, synthetic crater overlay.
+- **Geospatial stack:** rasterio + GDAL + pyproj for LOLA GeoTIFFs (polar stereographic, MOON_ME frame).
+- **Config:** YAML files in `configs/` per stage.
+- **Data dirs:** `data/raw/` and `models/` and `outputs/` are gitignored. `data/processed/` is tracked.
+
+## Data Sources
+
+- **Stage 2 training (primary):** Kaggle Artificial Lunar Landscape (9,766 images + masks) — `romainpessia/artificial-lunar-rocky-landscape-dataset`
+- **Stage 2 training (supplementary):** LuSNAR (108GB, 5-class, 9 UE scenes) — HuggingFace `JeremyLuo/LuSNAR`
+- **Stage 2 validation (real):** 74 real moon images from Kaggle dataset + ShadowCam PSR imagery from KPLO (data.ser.asu.edu)
+- **Stage 1 training:** Kaggle Crater Detection (`lincolnzh/martianlunar-crater-detection-dataset`), DeepMoon synthetic DEMs, Kaggle LU3M6TGT
+- **Stage 3 features:** NASA PGDA LOLA products at pgda.gsfc.nasa.gov/products/90 (20m/px elevation, slope, roughness, error GeoTIFFs), NASA SVS illumination data at svs.gsfc.nasa.gov/5027/
+- **Dark terrain:** ShadowCam (200x LROC NAC sensitivity, ~2m PSR resolution), Diviner thermal (rock abundance, thermal inertia), Mini-RF SAR (backscatter, CPD ice indicator)
+- **Validation:** Global Lunar Boulder Map (94M boulders, Zenodo 14751586), ResGAT-F benchmark (7.81% suitable area)
+
+## Domain Context
+
+- This project fills the gap between NASA's deterministic SPLICE flight system and academic ML research. It's a **pre-mission analysis** tool, not a real-time descent system.
+- The IM-2 south pole crash (March 2025) validated the need for ML approaches — geometric algorithms failed under extreme south pole lighting.
+- **Validation target:** Top-ranked sites should overlap with NASA's 9 Artemis candidate regions (Cabeus B, Haworth, Malapert Massif, Mons Mouton Plateau, Mons Mouton, Nobile Rim 1, Nobile Rim 2, de Gerlache Rim 2, Slater Plain).
+- **Benchmark:** ResGAT-F found 7.81% of south pole area suitable — our model should find similar.
+- Slope is universally the #1 predictive feature across all published studies.
+
+## Build Plan
+
+### Phase 0: Scaffold
+- [x] CLAUDE.md spec
+- [x] Repo structure, requirements.txt, .gitignore, configs
+- [x] Data download scripts
+- [x] README.md (initial)
+
+### Phase 1: Stage 2 — Terrain Segmentation
+- [x] Download + explore Kaggle landscape dataset (9,766 images, 4 classes)
+- [x] Preprocess, split, PyTorch Dataset (`LunarTerrainDataset`)
+- [x] U-Net + ResNet-34 baseline, Dice+CE loss — trained, mIoU 0.48
+- [x] Colab notebook for GPU training (`notebooks/train_segmenter_colab.ipynb`)
+- [ ] DINOv2 encoder upgrade (implemented, needs GPU training)
+- [ ] LuSNAR supplementary data integration
+- [ ] Lunar-specific augmentations (shadow rotation, extreme contrast, Hapke BRDF)
+- [ ] MC Dropout uncertainty maps
+- [ ] Sim-to-real evaluation on ShadowCam + real moon images
+
+### Phase 1.5: Dark Terrain Analysis Module (NEW)
+- [x] Depth estimation module (Depth Anything V2 wrapper, shadow-based depth)
+- [x] HORUS-style dark image enhancement (DestripeNet + PhotonNet)
+- [x] Illumination decomposition (albedo/shading separation)
+- [ ] ShadowCam data download + preprocessing
+- [ ] Shadow-to-depth pipeline on south pole imagery
+- [ ] Validate depth estimates against LOLA DEM ground truth
+
+### Phase 2: Stage 1 — Crater Detection
+- [ ] Download crater datasets + LOLA DEMs
+- [ ] DEM tile extraction pipeline
+- [ ] Crater U-Net (or YOLO variant)
+- [ ] Train, evaluate, run inference on south pole DEM
+
+### Phase 3: Stage 3 — Feature Engineering & Scoring
+- [ ] Download PGDA products (slope, roughness, error, K-means, illumination)
+- [ ] Download Diviner thermal (thermal inertia, rock abundance) + Mini-RF SAR
+- [ ] Compute Stage 1/2 derived features (22+ features, up from 16)
+- [ ] Add dark terrain features (PSR fraction, shadow depth, SAR backscatter, thermal inertia)
+- [ ] Build feature matrix, define labels
+- [ ] Train XGBoost, SHAP analysis
+- [ ] Compare against NASA's 9 Artemis regions + ResGAT-F benchmark
+
+### Phase 4: Integration & Polish
+- [ ] End-to-end pipeline script
+- [ ] Full demo notebook with uncertainty visualization
+- [ ] Final README with results
+- [ ] Tests, cleanup

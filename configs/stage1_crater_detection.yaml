@@ -1,0 +1,40 @@
+# Stage 1: Crater Detection
+# Dataset: Kaggle crater detection + DeepMoon synthetic DEMs
+
+data:
+  dataset: "lincolnzh/martianlunar-crater-detection-dataset"
+  input_size: 256
+  num_classes: 1
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+  seed: 42
+
+model:
+  architecture: "Unet"
+  encoder: "resnet34"
+  encoder_weights: "imagenet"
+  in_channels: 1
+  classes: 1
+
+training:
+  epochs: 40
+  batch_size: 16
+  learning_rate: 1.0e-4
+  optimizer: "adam"
+  weight_decay: 1.0e-4
+  scheduler: "cosine"
+  scheduler_params:
+    T_max: 40
+    eta_min: 1.0e-6
+
+loss:
+  type: "dice_bce"
+  dice_weight: 0.5
+  bce_weight: 0.5
+
+output:
+  checkpoint_dir: "models/"
+  log_dir: "outputs/logs/"
+  save_best: true
+  metric: "iou"

@@ -1,0 +1,48 @@
+# Stage 2: Terrain Hazard Segmentation (CPU-friendly config)
+# Reduced settings for training without GPU
+
+data:
+  dataset: "romainpessia/artificial-lunar-rocky-landscape-dataset"
+  input_size: 256
+  num_classes: 4
+  class_names: ["background", "small_rocks", "large_rocks", "sky"]
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+  seed: 42
+
+model:
+  architecture: "Unet"
+  encoder: "resnet34"
+  encoder_weights: "imagenet"
+  in_channels: 3
+  classes: 4
+
+training:
+  epochs: 5
+  batch_size: 4
+  learning_rate: 1.0e-4
+  optimizer: "adam"
+  weight_decay: 1.0e-4
+  scheduler: "cosine"
+  scheduler_params:
+    T_max: 5
+    eta_min: 1.0e-6
+
+loss:
+  type: "dice_ce"
+  dice_weight: 0.5
+  ce_weight: 0.5
+
+augmentation:
+  horizontal_flip: true
+  vertical_flip: true
+  random_rotate_90: true
+  brightness_contrast: true
+  gaussian_noise: true
+
+output:
+  checkpoint_dir: "models/"
+  log_dir: "outputs/logs/"
+  save_best: true
+  metric: "mean_iou"

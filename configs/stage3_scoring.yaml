@@ -1,0 +1,48 @@
+# Stage 3: XGBoost Landing Site Scorer
+# Features from LOLA products + Stage 1/2 outputs
+
+data:
+  grid_resolution_m: 100
+  latitude_range: [-90, -80]
+  seed: 42
+
+features:
+  lola:
+    - "elevation"
+    - "slope"
+    - "roughness"
+    - "elevation_error"
+  stage1_derived:
+    - "crater_density"
+    - "crater_min_dist"
+    - "avg_crater_radius"
+  stage2_derived:
+    - "rock_coverage_pct"
+    - "large_rock_count"
+    - "shadow_coverage_pct"
+  illumination:
+    - "avg_illumination_pct"
+    - "max_continuous_shadow_days"
+  other:
+    - "earth_visibility_pct"
+    - "distance_to_psr_km"
+
+labels:
+  type: "rule_based"
+  thresholds:
+    slope_max_deg: 5.0
+    illumination_min_pct: 33.0
+    earth_visibility_min_pct: 50.0
+
+model:
+  n_estimators: 300
+  max_depth: 6
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  eval_metric: "auc"
+
+output:
+  model_path: "models/site_scorer.xgb"
+  shap_dir: "outputs/shap/"
+  predictions_dir: "outputs/predictions/"

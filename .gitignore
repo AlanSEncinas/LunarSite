@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Project data (large files, not tracked)
+data/raw/
+models/*.pt
+models/*.pth
+models/*.xgb
+models/*.json
+outputs/
+
+# Geospatial
+*.tif
+*.tiff
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
