@@ -82,12 +82,12 @@ Four-module pipeline with dark terrain analysis:
 ### Phase 1: Stage 2 — Terrain Segmentation
 - [x] Download + explore Kaggle landscape dataset (9,766 images, 4 classes)
 - [x] Preprocess, split, PyTorch Dataset (`LunarTerrainDataset`)
-- [x] U-Net + ResNet-34 baseline, Dice+CE loss — trained, mIoU 0.48
+- [x] U-Net + ResNet-34 baseline, Dice+CE loss — **mIoU 0.8374** (A100, 50 epochs, 480px)
 - [x] Colab notebook for GPU training (`notebooks/train_segmenter_colab.ipynb`)
-- [ ] DINOv2 encoder upgrade (implemented, needs GPU training)
+- [x] Lunar-specific augmentations (shadow rotation, extreme contrast, Hapke BRDF)
+- [ ] DINOv2 encoder — training in progress on Colab A100
 - [ ] LuSNAR supplementary data integration
-- [ ] Lunar-specific augmentations (shadow rotation, extreme contrast, Hapke BRDF)
-- [ ] MC Dropout uncertainty maps
+- [ ] MC Dropout uncertainty maps (implemented, awaiting DINOv2 results)
 - [ ] Sim-to-real evaluation on ShadowCam + real moon images
 
 ### Phase 1.5: Dark Terrain Analysis Module (NEW)
@@ -118,3 +118,10 @@ Four-module pipeline with dark terrain analysis:
 - [ ] Full demo notebook with uncertainty visualization
 - [ ] Final README with results
 - [ ] Tests, cleanup
+
+### Phase 5: Impact & Release
+- [ ] **Open-source release** — clean README, Docker container, reproducible results, MIT license
+- [ ] **arXiv paper** — novel contributions: DINOv2 lunar augmentations, shadow-depth validation against LOLA, MC Dropout uncertainty for landing site confidence
+- [ ] **Interactive web demo** — Streamlit/Gradio app: input south pole coordinates → safety score + terrain overlay + uncertainty map + SHAP explanation
+- [ ] **Commercial outreach** — share results with Intuitive Machines, Firefly, Astrobotic, ispace via LinkedIn with demo link
+- [ ] **Community launch** — post demo video to Twitter/X space community, Reddit r/space, Hacker News
