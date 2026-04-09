@@ -1,0 +1,21 @@
+{
+  "best_model": "resnet34",
+  "baseline_best_miou": 0.8357,
+  "dinov2_best_miou": 0.5856,
+  "best_epoch": 49,
+  "test_loss": NaN,
+  "test_mean_iou": 0.8425,
+  "test_mean_dice": 0.9088,
+  "test_per_class_iou": {
+    "background": 0.9754,
+    "small_rocks": 0.9748,
+    "large_rocks": 0.7092,
+    "sky": 0.7104
+  },
+  "test_per_class_dice": {
+    "background": 0.9875,
+    "small_rocks": 0.9873,
+    "large_rocks": 0.8299,
+    "sky": 0.8307
+  }
+}
