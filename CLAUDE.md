@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **LunarSite** — an end-to-end ML pipeline for lunar south pole landing site selection. Three-stage architecture: (1) Crater Detection CNN, (2) Terrain Hazard Segmentation, (3) XGBoost Landing Site Scorer with SHAP explainability. Python-only. Portfolio project by Alan.
 
-**Current status:** Phase 1 in progress. Stage 2 baseline trained (U-Net + ResNet-34, mIoU 0.48). Enhanced pipeline with DINOv2 encoder, dark terrain analysis, and ShadowCam integration under development.
+**Current status:** Phase 1 in progress. Stage 2 baseline trained (U-Net + ResNet-34, val best mIoU 0.8357 / test mIoU 0.8425). v2 training in progress on Kaggle T4 x2 (ResNet-50 + FocalDiceLoss + class weights + TTA).
 
 ## Commands
 
@@ -82,7 +82,7 @@ Four-module pipeline with dark terrain analysis:
 ### Phase 1: Stage 2 — Terrain Segmentation
 - [x] Download + explore Kaggle landscape dataset (9,766 images, 4 classes)
 - [x] Preprocess, split, PyTorch Dataset (`LunarTerrainDataset`)
-- [x] U-Net + ResNet-34 baseline, Dice+CE loss — **mIoU 0.8374** (A100, 50 epochs, 480px)
+- [x] U-Net + ResNet-34 baseline, Dice+CE loss — **val best mIoU 0.8357, test mIoU 0.8425** (A100, 50 epochs, 480px)
 - [x] Colab notebook for GPU training (`notebooks/train_segmenter_colab.ipynb`)
 - [x] Lunar-specific augmentations (shadow rotation, extreme contrast, Hapke BRDF)
 - [ ] DINOv2 encoder — training in progress on Colab A100
