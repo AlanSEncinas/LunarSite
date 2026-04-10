@@ -8,6 +8,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Current status:** Phase 1 in progress. Stage 2 baseline trained (U-Net + ResNet-34, val best mIoU 0.8357 / test mIoU 0.8425). v2 training in progress on Kaggle T4 x2 (ResNet-50 + FocalDiceLoss + class weights + TTA).
 
+## Ship Definition
+
+LunarSite has three defined ship tiers. **Tier 2 is the real ship.** Everything else is either pre-ship infrastructure (Tier 1) or post-ship expansion (Tier 3). Pick one explicitly; do not let scope drift.
+
+**Tier 1 — Minimum Viable (weeks away):** Stage 2 segmentation only. Trained segmenter (v1 or v2 winner) + sim-to-real qualitative eval + Streamlit v0 demo with preloaded example outputs. Portfolio-credible. Not "LunarSite" — it's "a good lunar terrain segmenter."
+
+**Tier 2 — Core (the real ship):** Tier 1 + Stage 1 crater detection + Stage 3 XGBoost scorer with LOLA features + deep ensemble uncertainty on Stage 2 + Streamlit v3 demo (coordinates → full site score + SHAP). This is LunarSite as pitched: input south pole coordinates, output safety score with explainability. No dark terrain module, no arXiv paper. **End-to-end pipeline working is the definition of done.**
+
+**Tier 3 — Full Vision (post-ship, earned by shipping Tier 2 first):** Tier 2 + Dark Terrain module (ShadowCam, HORUS denoising, shadow-depth validation against LOLA) + MC Dropout uncertainty + arXiv paper + commercial outreach.
+
+### Uncertainty strategy
+Deep ensembles in Tier 2, not MC Dropout. 4-5 independent ResNet-50 runs with varied random seeds (weight init, DataLoader shuffle, augmentation RNG), **identical data split and config across all members**, all siblings of the v2 winning config. MC Dropout stays in Tier 3 — the current implementation is dead code (`src/lunarsite/utils/uncertainty.py` is not imported anywhere; notebook copies only work on DINOv2, not the production ResNet).
+
+### Streamlit demo progression
+Build early, upgrade incrementally. Each version is independently shareable.
+- **v0** (as soon as v2 test is done): Stage 2 only. Preloaded synthetic + real moon example with cached prediction artifacts — first paint shows finished overlay + per-class IoU table, not an empty upload box. Upload input below the example.
+- **v1:** + real moon image gallery, sim-to-real comparison.
+- **v2:** + crater detection output once Stage 1 lands.
+- **v3:** + coordinate input → full site score + SHAP waterfall plot once Stage 3 lands.
+
+The demo must exist at every stage of the build. Never be in a "can't show this yet" position.
+
 ## Commands
 
 ```bash
