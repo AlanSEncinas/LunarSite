@@ -24,10 +24,9 @@ env/
 
 # Project data (large files, not tracked)
 data/raw/
-models/*.pt
-models/*.pth
-models/*.xgb
-models/*.json
+models/**/*.pt
+models/**/*.pth
+models/**/*.xgb
 outputs/
 
 # Geospatial
