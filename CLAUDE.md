@@ -53,6 +53,8 @@ pytest tests/test_models.py -k "test_unet"  # Single test
 
 ## Architecture
 
+> **Scope note:** The architecture described here reflects the full Tier 3 vision. The Tier 2 ship excludes the Dark Terrain module (§3) and uses deep ensembles instead of MC Dropout for uncertainty. See Ship Definition above for what's in-scope for the real ship.
+
 Four-module pipeline with dark terrain analysis:
 
 1. **Stage 1 — Crater Detection (PyTorch):** U-Net on 256x256/512x512 DEM tiles → crater masks/detections with position + radius. Feeds `crater_density`, `crater_min_dist`, `avg_crater_radius` into Stage 3.
@@ -69,7 +71,8 @@ Four-module pipeline with dark terrain analysis:
 - **Package layout:** `src/lunarsite/` with editable install via `setup.py`.
 - **Segmentation encoders:** DINOv2 (primary, domain-agnostic ViT) or ResNet-34 via `segmentation_models_pytorch` (baseline).
 - **Dark terrain analysis:** Depth Anything V2 for monocular depth, shadow geometry for physics-based depth, HORUS-style denoising for PSR imagery.
-- **Uncertainty:** MC Dropout with mutual information for epistemic uncertainty, flagging low-confidence predictions in shadowed regions.
+- **Uncertainty (Tier 2 ship):** Deep ensembles — 4-5 ResNet-50 runs with varied random seeds (weight init, DataLoader shuffle, augmentation RNG), identical data split and config. Epistemic uncertainty from ensemble disagreement.
+- **Uncertainty (Tier 3 future):** MC Dropout with mutual information for epistemic uncertainty, flagging low-confidence predictions in shadowed regions. Currently dead code; see Ship Definition.
 - **Augmentations:** Lunar-specific shadow rotation, extreme contrast, Hapke BRDF perturbation, synthetic crater overlay.
 - **Geospatial stack:** rasterio + GDAL + pyproj for LOLA GeoTIFFs (polar stereographic, MOON_ME frame).
 - **Config:** YAML files in `configs/` per stage.
@@ -101,47 +104,60 @@ Four-module pipeline with dark terrain analysis:
 - [x] Data download scripts
 - [x] README.md (initial)
 
-### Phase 1: Stage 2 — Terrain Segmentation
+### Phase 1: Stage 2 — Terrain Segmentation  _(Tier 1/2)_
 - [x] Download + explore Kaggle landscape dataset (9,766 images, 4 classes)
 - [x] Preprocess, split, PyTorch Dataset (`LunarTerrainDataset`)
 - [x] U-Net + ResNet-34 baseline, Dice+CE loss — **val best mIoU 0.8357, test mIoU 0.8425** (A100, 50 epochs, 480px)
 - [x] Colab notebook for GPU training (`notebooks/train_segmenter_colab.ipynb`)
 - [x] Lunar-specific augmentations (shadow rotation, extreme contrast, Hapke BRDF)
-- [ ] DINOv2 encoder — training in progress on Colab A100
-- [ ] LuSNAR supplementary data integration
-- [ ] MC Dropout uncertainty maps (implemented, awaiting DINOv2 results)
-- [ ] Sim-to-real evaluation on ShadowCam + real moon images
+- [ ] v2 training: ResNet-50 + FocalDiceLoss + class weights + TTA (Kaggle T4 x2)
+- [ ] Pick winner between v1 and v2, lock production config
+- [ ] Deep ensemble: 4-5 runs of winning config with varied seeds
+- [ ] Sim-to-real evaluation on real moon images
+- [ ] Streamlit v0 demo — Stage 2 only, preloaded examples
 
-### Phase 1.5: Dark Terrain Analysis Module (NEW)
-- [x] Depth estimation module (Depth Anything V2 wrapper, shadow-based depth)
-- [x] HORUS-style dark image enhancement (DestripeNet + PhotonNet)
-- [x] Illumination decomposition (albedo/shading separation)
-- [ ] ShadowCam data download + preprocessing
-- [ ] Shadow-to-depth pipeline on south pole imagery
-- [ ] Validate depth estimates against LOLA DEM ground truth
-
-### Phase 2: Stage 1 — Crater Detection
+### Phase 2: Stage 1 — Crater Detection  _(Tier 2)_
 - [ ] Download crater datasets + LOLA DEMs
 - [ ] DEM tile extraction pipeline
 - [ ] Crater U-Net (or YOLO variant)
 - [ ] Train, evaluate, run inference on south pole DEM
+- [ ] Streamlit v2 demo upgrade — add crater output
 
-### Phase 3: Stage 3 — Feature Engineering & Scoring
+### Phase 3: Stage 3 — Feature Engineering & Scoring  _(Tier 2)_
 - [ ] Download PGDA products (slope, roughness, error, K-means, illumination)
 - [ ] Download Diviner thermal (thermal inertia, rock abundance) + Mini-RF SAR
-- [ ] Compute Stage 1/2 derived features (22+ features, up from 16)
-- [ ] Add dark terrain features (PSR fraction, shadow depth, SAR backscatter, thermal inertia)
+- [ ] Compute Stage 1/2 derived features
 - [ ] Build feature matrix, define labels
 - [ ] Train XGBoost, SHAP analysis
 - [ ] Compare against NASA's 9 Artemis regions + ResGAT-F benchmark
+- [ ] Streamlit v3 demo upgrade — coordinates → site score + SHAP
 
-### Phase 4: Integration & Polish
+### Phase 4: Integration & Polish  _(Tier 2 — SHIP)_
 - [ ] End-to-end pipeline script
-- [ ] Full demo notebook with uncertainty visualization
+- [ ] Full demo notebook
 - [ ] Final README with results
 - [ ] Tests, cleanup
+- [ ] **Tier 2 ship checkpoint — LunarSite is "done enough to show people"**
 
-### Phase 5: Impact & Release
+---
+
+_Everything below is Tier 3 (post-ship). Do not start until Tier 2 is shipped._
+
+### Phase 5: Dark Terrain Analysis Module  _(Tier 3, deferred)_
+- [x] Depth estimation module (Depth Anything V2 wrapper, shadow-based depth) — code exists, not validated
+- [x] HORUS-style dark image enhancement (DestripeNet + PhotonNet) — code exists, not validated
+- [x] Illumination decomposition (albedo/shading separation) — code exists, not validated
+- [ ] ShadowCam data download + preprocessing
+- [ ] Shadow-to-depth pipeline on south pole imagery
+- [ ] Validate depth estimates against LOLA DEM ground truth
+- [ ] Add dark terrain features (PSR fraction, shadow depth, SAR backscatter, thermal inertia) to Stage 3 feature matrix
+
+### Phase 6: Advanced Uncertainty  _(Tier 3, deferred)_
+- [ ] MC Dropout proper implementation on production ResNet (inject dropout, retrain/fine-tune, validate calibration)
+- [ ] LuSNAR supplementary data integration
+- [ ] DINOv2 encoder — revisit if baseline results warrant
+
+### Phase 7: Impact & Release  _(Tier 3, deferred)_
 - [ ] **Open-source release** — clean README, Docker container, reproducible results, MIT license
 - [ ] **arXiv paper** — novel contributions: DINOv2 lunar augmentations, shadow-depth validation against LOLA, MC Dropout uncertainty for landing site confidence
 - [ ] **Interactive web demo** — Streamlit/Gradio app: input south pole coordinates → safety score + terrain overlay + uncertainty map + SHAP explanation
