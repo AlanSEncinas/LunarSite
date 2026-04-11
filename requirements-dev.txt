@@ -1,7 +1,7 @@
 #
 # Full development dependencies for building LunarSite end-to-end.
 # Requires conda for GDAL on Windows; pure-pip install often fails.
-# For the demo only, use requirements.txt (lean subset that works anywhere).
+# For the Streamlit demo only, use requirements.txt (the minimal runtime set).
 #
 # Install order:
 #   conda install -c conda-forge gdal rasterio pyproj
@@ -10,6 +10,20 @@
 #
 
 -r requirements.txt
+
+# Training / eval / notebooks
+albumentations>=1.4,<2.0
+matplotlib>=3.8.0,<3.11
+pandas>=2.1.0,<2.3
+scikit-learn>=1.4.0,<1.7
+scipy>=1.12.0,<1.15
+seaborn>=0.13.0,<0.14
+pyyaml>=6.0,<6.1
+tqdm>=4.66.0,<4.70
+
+# Data download + Kaggle
+kagglehub>=0.2.0,<0.4
+kaggle>=1.6.0,<2.0
 
 # Stage 3: gradient boosted scoring + explainability
 xgboost>=2.0.0,<2.2
@@ -22,12 +36,7 @@ shap>=0.44.0,<0.48
 # GDAL>=3.8.0,<3.10
 # pyproj>=3.6.0,<3.8
 
-# Utilities
-scipy>=1.12.0,<1.15
-seaborn>=0.13.0,<0.14
-
 # Dev tooling
 pytest>=8.0.0,<8.4
 pytest-cov>=4.1.0,<6.0
-kaggle>=1.6.0,<2.0
 jupyter>=1.0.0,<2.0
