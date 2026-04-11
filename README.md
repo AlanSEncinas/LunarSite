@@ -16,11 +16,11 @@ The demo shows **Stage 2 (terrain segmentation)** — upload any lunar image and
 
 *36 real moon photos with model predictions overlaid. Model was trained only on synthetic Unreal Engine scenes and has never seen real lunar imagery during training.*
 
-## 📊 Current results (Stage 2 locked)
+## Current results (Stage 2 locked)
 
 | Configuration | Test mIoU | Notes |
 |---|---|---|
-| **v1: ResNet-34 + Dice+CE + flip TTA** | **0.8456**  | Production config |
+| **v1: ResNet-34 + Dice+CE + flip TTA** | **0.8456** | Production config |
 | v1: ResNet-34 standard | 0.8425 | Baseline |
 | v2: ResNet-50 + Focal+Dice + class weights + flip TTA | 0.8429 | Ablation — lost by 0.003 |
 | v1: ResNet-34 + multi-scale TTA | 0.8439 | Harmful, 3× slower, discarded |
@@ -162,11 +162,11 @@ python scripts/build_demo_assets.py
 
 | Stage | Dataset | Source | Status |
 |---|---|---|---|
-| 2 (train) | Artificial Lunar Rocky Landscape (9,766 synthetic) | [Kaggle: romainpessia](https://www.kaggle.com/datasets/romainpessia/artificial-lunar-rocky-landscape-dataset) | ✅ Used |
-| 2 (real eval) | 36 real moon photos (paired with GT masks) | Included in above | ✅ Used |
-| 1 (train) | Martian/Lunar Crater Detection | [Kaggle: lincolnzh](https://www.kaggle.com/datasets/lincolnzh/martianlunar-crater-detection-dataset) | ⏳ Roadmap |
-| 3 (features) | LOLA Gridded Products (20 m/px DEM + derivatives) | [NASA PGDA](https://pgda.gsfc.nasa.gov/products/90) | ⏳ Roadmap |
-| 3 (validation) | NASA Artemis III candidate regions (9 sites) | NASA | ⏳ Roadmap |
+| 2 (train) | Artificial Lunar Rocky Landscape (9,766 synthetic) | [Kaggle: romainpessia](https://www.kaggle.com/datasets/romainpessia/artificial-lunar-rocky-landscape-dataset) | Used |
+| 2 (real eval) | 36 real moon photos (paired with GT masks) | Included in above | Used |
+| 1 (train) | Martian/Lunar Crater Detection | [Kaggle: lincolnzh](https://www.kaggle.com/datasets/lincolnzh/martianlunar-crater-detection-dataset) | Roadmap |
+| 3 (features) | LOLA Gridded Products (20 m/px DEM + derivatives) | [NASA PGDA](https://pgda.gsfc.nasa.gov/products/90) | Roadmap |
+| 3 (validation) | NASA Artemis III candidate regions (9 sites) | NASA | Roadmap |
 
 ##  Validation target
 

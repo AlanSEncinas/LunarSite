@@ -114,12 +114,11 @@ def render_coverage_bars(coverage: dict):
 
 st.set_page_config(
     page_title="LunarSite - Terrain Segmentation",
-    page_icon="🌙",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-st.title("🌙 LunarSite")
+st.title("LunarSite")
 st.markdown("### Lunar terrain semantic segmentation — sim-to-real transfer from synthetic training data")
 
 st.markdown(
@@ -136,7 +135,7 @@ manifest = load_manifest()
 model, device, epoch, best_metric = load_model()
 
 # --- Model card ---
-with st.expander("📊 Model details & test set performance", expanded=False):
+with st.expander("Model details and test set performance", expanded=False):
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**Architecture**")
@@ -162,7 +161,7 @@ with st.expander("📊 Model details & test set performance", expanded=False):
 st.divider()
 
 # --- Real moon examples (gallery) ---
-st.header("🛰️ Real moon photography")
+st.header("Real moon photography")
 st.markdown(
     "The model was trained **only on synthetic data**. Here's what it predicts on actual moon photos "
     "— no fine-tuning, no domain adaptation, no real data in the training set."
@@ -184,14 +183,14 @@ if manifest and manifest.get("real_moon_examples"):
         st.image(str(DEMO_DIR / ex["overlay"]), caption="Model prediction overlay", use_container_width=True)
     render_coverage_bars(ex["coverage"])
 
-    with st.expander("Legend & known failure modes"):
+    with st.expander("Legend and known failure modes"):
         st.markdown(
             """
-            **Color legend:**
-            - ⚫ background (lunar regolith)
-            - 🟧 small_rocks
-            - 🟥 large_rocks
-            - 🟦 sky
+            **Color legend (overlay colors on the prediction image above):**
+            - **background** (lunar regolith) — unmodified / black
+            - **small_rocks** — orange
+            - **large_rocks** — red
+            - **sky** — light blue
 
             **Known failure mode:** Bright sun-lit rocks can be misclassified as sky.
             The synthetic training set has bright, uniform sky in every frame, so the model
@@ -203,7 +202,7 @@ else:
     st.info("Demo assets not found. Run `python scripts/build_demo_assets.py` to generate them.")
 
 # --- Synthetic benchmark ---
-st.header("🎮 Synthetic benchmark")
+st.header("Synthetic benchmark")
 if manifest and manifest.get("synthetic_example"):
     synth = manifest["synthetic_example"]
     st.markdown(
@@ -227,7 +226,7 @@ if manifest and manifest.get("synthetic_example"):
 st.divider()
 
 # --- Upload box ---
-st.header("📤 Try your own image")
+st.header("Try your own image")
 st.markdown(
     "Upload any lunar-looking image (synthetic, rover photo, telescope shot). "
     "The model applies flip TTA during inference. Images are center-cropped to 480×480."
@@ -266,6 +265,6 @@ st.markdown(
     This demo shows **Stage 2** (terrain segmentation). The full pipeline adds **Stage 1**
     (crater detection) and **Stage 3** (XGBoost site scorer with SHAP explainability).
 
-    Built by [Alan Encinas](https://github.com/AlanSEncinas) · [Source on GitHub](https://github.com/AlanSEncinas/Moon) · MIT License
+    Built by [Alan Scott Encinas](https://github.com/AlanSEncinas) · [Source on GitHub](https://github.com/AlanSEncinas/Moon) · MIT License
     """
 )
