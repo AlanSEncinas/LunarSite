@@ -1,0 +1,113 @@
+{
+  "model": "U-Net + ResNet-34 + Dice+CE + flip TTA",
+  "checkpoint": "best_resnet34.pt",
+  "test_metrics": {
+    "mean_iou": 0.8456,
+    "per_class_iou": {
+      "background": 0.9759,
+      "small_rocks": 0.9749,
+      "large_rocks": 0.7176,
+      "sky": 0.7141
+    }
+  },
+  "real_moon_examples": [
+    {
+      "name": "PCAM5",
+      "caption": "Close-up rocky terrain with visible sky",
+      "input": "real_moon/PCAM5_input.png",
+      "overlay": "real_moon/PCAM5_overlay.png",
+      "coverage": {
+        "background": 0.7384418402777778,
+        "small_rocks": 0.07337239583333334,
+        "large_rocks": 0.03337673611111111,
+        "sky": 0.15480902777777777
+      }
+    },
+    {
+      "name": "PCAM6",
+      "caption": "Sun-lit boulder field with sky",
+      "input": "real_moon/PCAM6_input.png",
+      "overlay": "real_moon/PCAM6_overlay.png",
+      "coverage": {
+        "background": 0.5570616319444445,
+        "small_rocks": 0.046822916666666665,
+        "large_rocks": 0.009175347222222222,
+        "sky": 0.3869401041666667
+      }
+    },
+    {
+      "name": "PCAM8",
+      "caption": "Dense scattered rocks on flat regolith",
+      "input": "real_moon/PCAM8_input.png",
+      "overlay": "real_moon/PCAM8_overlay.png",
+      "coverage": {
+        "background": 0.926328125,
+        "small_rocks": 0.0,
+        "large_rocks": 0.073671875,
+        "sky": 0.0
+      }
+    },
+    {
+      "name": "PCAM1",
+      "caption": "Classic lunar landscape with distant horizon",
+      "input": "real_moon/PCAM1_input.png",
+      "overlay": "real_moon/PCAM1_overlay.png",
+      "coverage": {
+        "background": 0.8513975694444444,
+        "small_rocks": 0.0,
+        "large_rocks": 0.05109809027777778,
+        "sky": 0.09750434027777778
+      }
+    },
+    {
+      "name": "TCAM7",
+      "caption": "Close-up rubble field, small rocks dominant",
+      "input": "real_moon/TCAM7_input.png",
+      "overlay": "real_moon/TCAM7_overlay.png",
+      "coverage": {
+        "background": 0.13180121527777777,
+        "small_rocks": 0.42897135416666665,
+        "large_rocks": 0.0,
+        "sky": 0.4392274305555556
+      }
+    },
+    {
+      "name": "TCAM21",
+      "caption": "Mixed terrain with rocks and sky",
+      "input": "real_moon/TCAM21_input.png",
+      "overlay": "real_moon/TCAM21_overlay.png",
+      "coverage": {
+        "background": 0.37567274305555554,
+        "small_rocks": 0.5146267361111111,
+        "large_rocks": 0.0,
+        "sky": 0.10970052083333333
+      }
+    }
+  ],
+  "synthetic_example": {
+    "name": "render0042",
+    "caption": "Synthetic Unreal Engine scene from the Kaggle Artificial Lunar Landscape dataset",
+    "input": "synthetic/input.png",
+    "overlay": "synthetic/overlay.png",
+    "ground_truth": "synthetic/ground_truth.png",
+    "predicted_coverage": {
+      "background": 0.5443142361111111,
+      "small_rocks": 0.1736111111111111,
+      "large_rocks": 0.03875868055555556,
+      "sky": 0.24331597222222223
+    },
+    "ground_truth_coverage": {
+      "background": 0.533046875,
+      "small_rocks": 0.17375,
+      "large_rocks": 0.046892361111111114,
+      "sky": 0.2463107638888889
+    },
+    "per_class_iou": {
+      "background": 0.9386441736957201,
+      "small_rocks": 0.9990508305232921,
+      "large_rocks": 0.6159515230920406,
+      "sky": 0.9389158158880754
+    },
+    "mean_iou": 0.873140585799782
+  }
+}

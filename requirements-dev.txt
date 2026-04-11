@@ -1,0 +1,33 @@
+#
+# Full development dependencies for building LunarSite end-to-end.
+# Requires conda for GDAL on Windows; pure-pip install often fails.
+# For the demo only, use requirements.txt (lean subset that works anywhere).
+#
+# Install order:
+#   conda install -c conda-forge gdal rasterio pyproj
+#   pip install -r requirements-dev.txt
+#   pip install -e .
+#
+
+-r requirements.txt
+
+# Stage 3: gradient boosted scoring + explainability
+xgboost>=2.0.0,<2.2
+shap>=0.44.0,<0.48
+
+# Stage 1 + Stage 3: geospatial data handling
+# These are listed for reference - install via conda for reliability:
+#   conda install -c conda-forge gdal rasterio pyproj
+# rasterio>=1.3.9,<1.5
+# GDAL>=3.8.0,<3.10
+# pyproj>=3.6.0,<3.8
+
+# Utilities
+scipy>=1.12.0,<1.15
+seaborn>=0.13.0,<0.14
+
+# Dev tooling
+pytest>=8.0.0,<8.4
+pytest-cov>=4.1.0,<6.0
+kaggle>=1.6.0,<2.0
+jupyter>=1.0.0,<2.0

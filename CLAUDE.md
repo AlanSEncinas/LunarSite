@@ -6,17 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **LunarSite** — an end-to-end ML pipeline for lunar south pole landing site selection. Three-stage architecture: (1) Crater Detection CNN, (2) Terrain Hazard Segmentation, (3) XGBoost Landing Site Scorer with SHAP explainability. Python-only. Portfolio project by Alan.
 
-**Current status:** Phase 1 in progress. Stage 2 baseline trained (U-Net + ResNet-34, val best mIoU 0.8357 / test mIoU 0.8425). v2 training in progress on Kaggle T4 x2 (ResNet-50 + FocalDiceLoss + class weights + TTA).
+**Current status:** **Layer 1 Foundation complete.** Production Stage 2 model locked: U-Net + ResNet-34 + Dice+CE + flip TTA, test mIoU **0.8456** (beat v2 at 0.8429; multi-scale TTA discarded as harmful). Sim-to-real eval done on 36 real moon images — coherent transfer with class balance preserved. Streamlit v0 demo built ([streamlit_app.py](streamlit_app.py)) with preloaded examples + upload box. Next: Layer 2 Deepening — deep ensemble (4-5 seeds of v1 config) then Stage 1 crater detection.
 
 ## Ship Definition
 
-LunarSite has three defined ship tiers. **Tier 2 is the real ship.** Everything else is either pre-ship infrastructure (Tier 1) or post-ship expansion (Tier 3). Pick one explicitly; do not let scope drift.
+LunarSite has three build layers, each with a distinct role. **Layer 2 is the real ship.** Layer 1 is the foundation it stands on; Layer 3 is what validates it in the world. Pick one explicitly; do not let scope drift.
 
-**Tier 1 — Minimum Viable (weeks away):** Stage 2 segmentation only. Trained segmenter (v1 or v2 winner) + sim-to-real qualitative eval + Streamlit v0 demo with preloaded example outputs. Portfolio-credible. Not "LunarSite" — it's "a good lunar terrain segmenter."
+**Layer 1 — Foundation (weeks away):** Stage 2 segmentation only. Trained segmenter (v1 winner) + sim-to-real qualitative eval + Streamlit v0 demo with preloaded example outputs. *The core ML capability works and you can show it to someone.* The segmenter is the primary technical risk, the demo is the delivery channel, and the data → train → eval → deploy pattern gets established here. Everything in Layers 2 and 3 depends on this foundation being solid. Not "LunarSite" — it's "a good lunar terrain segmenter." If this doesn't work, nothing else matters.
 
-**Tier 2 — Core (the real ship):** Tier 1 + Stage 1 crater detection + Stage 3 XGBoost scorer with LOLA features + deep ensemble uncertainty on Stage 2 + Streamlit v3 demo (coordinates → full site score + SHAP). This is LunarSite as pitched: input south pole coordinates, output safety score with explainability. No dark terrain module, no arXiv paper. **End-to-end pipeline working is the definition of done.**
+**Layer 2 — Deepening (the real ship):** Layer 1 + Stage 1 crater detection + Stage 3 XGBoost scorer with LOLA features + deep ensemble uncertainty on Stage 2 + Streamlit v3 demo (coordinates → full site score + SHAP). *The foundation is proven; now you deepen it into the actual LunarSite pipeline.* Ensemble adds uncertainty rigor to Stage 2. Stage 1 adds crater detection as a parallel capability. Stage 3 brings Stages 1 and 2 together with LOLA features into the actual scorer the project is *for*. No dark terrain module, no arXiv paper. **This is LunarSite. End-to-end pipeline working is the definition of done.**
 
-**Tier 3 — Full Vision (post-ship, earned by shipping Tier 2 first):** Tier 2 + Dark Terrain module (ShadowCam, HORUS denoising, shadow-depth validation against LOLA) + MC Dropout uncertainty + arXiv paper + commercial outreach.
+**Layer 3 — Validation & End Game (post-ship, earned by shipping Layer 2 first):** Layer 2 + Dark Terrain module (ShadowCam, HORUS denoising, shadow-depth validation against LOLA) + MC Dropout uncertainty + arXiv paper + commercial outreach + community launch. *Everything in Layer 3 is about proving what Layer 2 built actually matters in the world.* Dark terrain validates the hardest edge case (permanently shadowed regions). The paper externally validates the technical contribution. Commercial outreach validates practical value. Community launch validates interest. Layer 3 is where you find out if LunarSite was worth building.
 
 ### Uncertainty strategy
 Deep ensembles in Tier 2, not MC Dropout. 4-5 independent ResNet-50 runs with varied random seeds (weight init, DataLoader shuffle, augmentation RNG), **identical data split and config across all members**, all siblings of the v2 winning config. MC Dropout stays in Tier 3 — the current implementation is dead code (`src/lunarsite/utils/uncertainty.py` is not imported anywhere; notebook copies only work on DINOv2, not the production ResNet).
@@ -128,17 +128,18 @@ Four-module pipeline with dark terrain analysis:
 - [x] Data download scripts
 - [x] README.md (initial)
 
-### Phase 1: Stage 2 — Terrain Segmentation  _(Tier 1/2)_
+### Phase 1: Stage 2 — Terrain Segmentation  _(Layer 1 Foundation + Layer 2 Deepening)_
 - [x] Download + explore Kaggle landscape dataset (9,766 images, 4 classes)
 - [x] Preprocess, split, PyTorch Dataset (`LunarTerrainDataset`)
 - [x] U-Net + ResNet-34 baseline, Dice+CE loss — **val best mIoU 0.8357, test mIoU 0.8425** (A100, 50 epochs, 480px)
 - [x] Colab notebook for GPU training (`notebooks/train_segmenter_colab.ipynb`)
 - [x] Lunar-specific augmentations (shadow rotation, extreme contrast, Hapke BRDF)
-- [ ] v2 training: ResNet-50 + FocalDiceLoss + class weights + TTA (Kaggle T4 x2)
-- [ ] Pick winner between v1 and v2, lock production config
-- [ ] Deep ensemble: 4-5 runs of winning config with varied seeds
-- [ ] Sim-to-real evaluation on real moon images
-- [ ] Streamlit v0 demo — Stage 2 only, preloaded examples
+- [x] v2 training: ResNet-50 + FocalDiceLoss + class weights (Kaggle T4 x2) — **val best 0.8304, test+TTA 0.8429** (lost vs v1)
+- [x] v1 vs v2 comparison with flip TTA + multi-scale TTA — **v1 ResNet-34 + flip TTA wins at test mIoU 0.8456** ([outputs/v1_vs_v2_eval/test_comparison.json](outputs/v1_vs_v2_eval/test_comparison.json))
+- [x] **Production config locked:** U-Net + ResNet-34 + Dice+CE + flip TTA. v2 kept as documented negative ablation.
+- [x] Sim-to-real qualitative evaluation on 36 real moon images — coherent transfer, class balance preserved (bg 75% vs training 76%, sr 19% vs 19%), known failure mode on bright-rocks-as-sky. See [outputs/sim_to_real/v1_tta/contact_sheet.png](outputs/sim_to_real/v1_tta/contact_sheet.png).
+- [x] Streamlit v0 demo — [streamlit_app.py](streamlit_app.py) with preloaded real moon + synthetic examples, model card, upload box. Smoke tested locally.
+- [ ] Deep ensemble: 4-5 runs of v1 config with varied seeds (_Layer 2 work_)
 
 ### Phase 2: Stage 1 — Crater Detection  _(Tier 2)_
 - [ ] Download crater datasets + LOLA DEMs
