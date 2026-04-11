@@ -8,7 +8,7 @@ A pre-mission analysis tool that combines deep learning for hazard detection wit
 
 ##  Live Demo
 
-**[Try the interactive demo →](https://REPLACE_WITH_STREAMLIT_URL)**
+**[Try the interactive demo →](https://lunarsite.streamlit.app)**
 
 The demo shows **Stage 2 (terrain segmentation)** — upload any lunar image and the model returns a per-pixel classification into background, small rocks, large rocks, and sky. Also includes a gallery of real moon photography showing sim-to-real transfer from purely synthetic training data.
 
@@ -209,4 +209,4 @@ MIT — see [LICENSE](LICENSE) if present, otherwise this statement is the licen
 
 **Alan Scott Encinas** — solo developer building LunarSite as a portfolio project and genuine contribution to open-source lunar science tooling. Not affiliated with NASA, JPL, or any commercial lunar company. Motivated by childhood excitement about space and the observation that the commercial lunar industry is starting to need tools like this.
 
-[GitHub](https://github.com/AlanSEncinas) · [Demo](https://REPLACE_WITH_STREAMLIT_URL)
+[GitHub](https://github.com/AlanSEncinas) · [Demo](https://lunarsite.streamlit.app)
