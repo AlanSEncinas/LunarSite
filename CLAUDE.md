@@ -49,7 +49,31 @@ python scripts/download_data.py
 # Tests
 pytest tests/
 pytest tests/test_models.py -k "test_unet"  # Single test
+
+# === Kaggle automation (no browser needed) === #
+# Prereq: pip install kaggle; place kaggle.json at ~/.kaggle/kaggle.json
+python scripts/kaggle_run.py list                    # Show registered kernels
+python scripts/kaggle_run.py push eval_v1_vs_v2      # Push notebook to Kaggle (queues run)
+python scripts/kaggle_run.py status eval_v1_vs_v2    # Check kernel status
+python scripts/kaggle_run.py wait eval_v1_vs_v2      # Poll until complete (60s interval)
+python scripts/kaggle_run.py pull eval_v1_vs_v2      # Download outputs to outputs/<name>/
+python scripts/kaggle_run.py run eval_v1_vs_v2       # Full loop: push + wait + pull
+
+# Dataset versioning (e.g. updating checkpoint dataset)
+kaggle datasets version -p tmp_upload/ -m "version notes"
+kaggle datasets files encinas88/lunarsite-checkpoints
 ```
+
+## Kaggle Workflow
+
+LunarSite uses Kaggle's free T4 GPUs for training and eval. The workflow is automated via `scripts/kaggle_run.py`:
+
+1. **Register a new kernel:** add an entry to the `KERNELS` dict in `scripts/kaggle_run.py` with slug, notebook path, accelerator, and dataset dependencies.
+2. **One-command run:** `python scripts/kaggle_run.py run <name>` pushes the notebook, polls until complete, and pulls outputs to `outputs/<name>/`.
+3. **Checkpoints dataset:** trained model weights live in the private `encinas88/lunarsite-checkpoints` Kaggle dataset. Update with `kaggle datasets version` to publish new versions — the eval notebook auto-downloads the latest via `kagglehub`.
+4. **No browser clicks for reruns:** once a kernel is registered, re-running it is one command. The metadata (GPU, internet, datasets) is baked into `KERNELS`, not the Kaggle UI.
+
+**Why this matters:** the manual browser flow (import notebook → attach dataset → set GPU → Run All → download outputs) takes ~5 minutes of clicks per run and is error-prone (easy to forget to attach a dataset). The script eliminates all of that. For ensemble training (5 seeds × future configs) this is the difference between an hour of clicking and a single script invocation.
 
 ## Architecture
 
