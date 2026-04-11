@@ -123,7 +123,7 @@ st.markdown("### Lunar terrain semantic segmentation — sim-to-real transfer fr
 
 st.markdown(
     """
-    Stage 2 of the [LunarSite](https://github.com/AlanSEncinas/Moon) ML pipeline for lunar south pole
+    Stage 2 of the [LunarSite](https://github.com/AlanSEncinas/LunarSite) ML pipeline for lunar south pole
     landing site selection. This model segments lunar surface imagery into four classes —
     **background**, **small rocks**, **large rocks**, **sky** — and was trained exclusively on
     9,766 synthetic Unreal Engine lunar scenes. The examples below show how it transfers to
@@ -265,6 +265,6 @@ st.markdown(
     This demo shows **Stage 2** (terrain segmentation). The full pipeline adds **Stage 1**
     (crater detection) and **Stage 3** (XGBoost site scorer with SHAP explainability).
 
-    Built by [Alan Scott Encinas](https://github.com/AlanSEncinas) · [Source on GitHub](https://github.com/AlanSEncinas/Moon) · MIT License
+    Built by [Alan Scott Encinas](https://github.com/AlanSEncinas) · [Source on GitHub](https://github.com/AlanSEncinas/LunarSite) · MIT License
     """
 )

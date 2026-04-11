@@ -110,8 +110,8 @@ Moon/
 ### Quick start (demo only)
 
 ```bash
-git clone https://github.com/AlanSEncinas/Moon.git
-cd Moon
+git clone https://github.com/AlanSEncinas/LunarSite.git
+cd LunarSite
 pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
