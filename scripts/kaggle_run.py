@@ -62,6 +62,7 @@ KERNELS: dict[str, KernelSpec] = {
             "romainpessia/artificial-lunar-rocky-landscape-dataset",
         ],
         output_dir=REPO_ROOT / "outputs" / "v1_vs_v2_eval",
+        is_private=False,
     ),
 }
 
