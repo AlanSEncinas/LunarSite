@@ -1,4 +1,4 @@
-# 🌙 LunarSite
+#  LunarSite
 
 **End-to-end machine learning pipeline for lunar south pole landing site selection.**
 
@@ -6,7 +6,7 @@ A pre-mission analysis tool that combines deep learning for hazard detection wit
 
 > **Motivation:** The Intuitive Machines IM-2 south pole lunar crash (March 2025) validated the need for machine learning approaches to landing site selection — classical geometric algorithms failed under the extreme lighting conditions of the south pole. LunarSite is an attempt to build the kind of ML-first pre-mission analysis tool that the commercial lunar industry needs.
 
-## 🚀 Live Demo
+##  Live Demo
 
 **[Try the interactive demo →](https://REPLACE_WITH_STREAMLIT_URL)**
 
@@ -20,7 +20,7 @@ The demo shows **Stage 2 (terrain segmentation)** — upload any lunar image and
 
 | Configuration | Test mIoU | Notes |
 |---|---|---|
-| **v1: ResNet-34 + Dice+CE + flip TTA** | **0.8456** 🏆 | Production config |
+| **v1: ResNet-34 + Dice+CE + flip TTA** | **0.8456**  | Production config |
 | v1: ResNet-34 standard | 0.8425 | Baseline |
 | v2: ResNet-50 + Focal+Dice + class weights + flip TTA | 0.8429 | Ablation — lost by 0.003 |
 | v1: ResNet-34 + multi-scale TTA | 0.8439 | Harmful, 3× slower, discarded |
@@ -36,7 +36,7 @@ The demo shows **Stage 2 (terrain segmentation)** — upload any lunar image and
 
 **Sim-to-real transfer (36 real moon photos, zero domain adaptation):** class distribution preserved within 2 percentage points of training distribution on real data. Model transfers coherently with one interpretable failure mode (bright sun-lit rocks occasionally misclassified as sky).
 
-## 🏗️ Architecture
+##  Architecture
 
 LunarSite is a three-stage pipeline. Each stage can be trained and evaluated independently; their outputs are combined in Stage 3 to produce a final site ranking.
 
@@ -46,7 +46,7 @@ LunarSite is a three-stage pipeline. Each stage can be trained and evaluated ind
 │                                                                 │
 │  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
 │  │ Stage 1       │  │ Stage 2          │  │ LOLA GeoTIFFs    │  │
-│  │ Crater Det.   │  │ Terrain Seg. ✅  │  │ (slope, elev,    │  │
+│  │ Crater Det.   │  │ Terrain Seg.   │  │ (slope, elev,    │  │
 │  │ U-Net / DEM   │  │ U-Net / RGB      │  │  roughness)      │  │
 │  └──────┬───────┘  └────────┬──────────┘  └───────┬─────────┘  │
 │         │ crater_density     │ rock_coverage_%     │ slope      │
@@ -69,7 +69,7 @@ LunarSite is a three-stage pipeline. Each stage can be trained and evaluated ind
 
 Only **Stage 2** is currently implemented and shipped. Stage 1 (crater detection) and Stage 3 (site scorer) are in the roadmap.
 
-## 🗺️ Ship definition
+##  Ship definition
 
 LunarSite has three build layers, each with a distinct role:
 
@@ -77,7 +77,7 @@ LunarSite has three build layers, each with a distinct role:
 - **Layer 2 — Deepening** *(in progress, the real ship)*: Layer 1 + deep ensemble uncertainty + Stage 1 crater detection + Stage 3 XGBoost scorer with LOLA features + full Streamlit demo with coordinate input and SHAP explanation. This is LunarSite as pitched.
 - **Layer 3 — Validation & End Game** *(post-ship)*: Dark terrain module for permanently shadowed regions, MC Dropout uncertainty, arXiv paper, commercial outreach to Intuitive Machines / Firefly / Astrobotic / ispace, community launch.
 
-## 📁 Project structure
+##  Project structure
 
 ```
 Moon/
@@ -105,7 +105,7 @@ Moon/
 └── CLAUDE.md                      # Full project specification
 ```
 
-## 🛠️ Setup
+##  Setup
 
 ### Quick start (demo only)
 
@@ -133,7 +133,7 @@ pip install -e .  # editable install of lunarsite package
 python scripts/download_data.py --stage 2
 ```
 
-## 🔬 Reproducing the results
+##  Reproducing the results
 
 **Stage 2 training (Kaggle T4 x2, ~6 hours):**
 
@@ -158,7 +158,7 @@ Outputs go to `outputs/sim_to_real/v1_tta/` including per-image overlays, a cont
 python scripts/build_demo_assets.py
 ```
 
-## 📦 Data sources
+##  Data sources
 
 | Stage | Dataset | Source | Status |
 |---|---|---|---|
@@ -168,45 +168,45 @@ python scripts/build_demo_assets.py
 | 3 (features) | LOLA Gridded Products (20 m/px DEM + derivatives) | [NASA PGDA](https://pgda.gsfc.nasa.gov/products/90) | ⏳ Roadmap |
 | 3 (validation) | NASA Artemis III candidate regions (9 sites) | NASA | ⏳ Roadmap |
 
-## 🎯 Validation target
+##  Validation target
 
 Top-ranked sites from Stage 3 should overlap with NASA's nine Artemis III candidate regions: Cabeus B, Haworth, Malapert Massif, Mons Mouton Plateau, Mons Mouton, Nobile Rim 1, Nobile Rim 2, de Gerlache Rim 2, Slater Plain. Benchmark: ResGAT-F found 7.81% of south pole area suitable — our model should find similar.
 
-## 📋 Roadmap
+##  Roadmap
 
-### Layer 1 — Foundation ✅
+### Layer 1 — Foundation 
 - [x] Stage 2 terrain segmenter (v1 ResNet-34, test mIoU 0.8456)
 - [x] v1 vs v2 head-to-head evaluation with full TTA matrix
 - [x] Sim-to-real qualitative evaluation on 36 real moon photos
 - [x] Streamlit v0 demo with preloaded examples
 
-### Layer 2 — Deepening 🚧
+### Layer 2 — Deepening 
 - [ ] Deep ensemble (4-5 v1 runs with varied seeds) for epistemic uncertainty
 - [ ] Stage 1: crater detection U-Net on DEM tiles
 - [ ] Stage 3: XGBoost site scorer with LOLA features + SHAP
 - [ ] End-to-end pipeline script
 - [ ] Streamlit demo v3: coordinate input → full pipeline output
 
-### Layer 3 — Validation & End Game 🔮
+### Layer 3 — Validation & End Game 
 - [ ] Dark terrain module (ShadowCam, HORUS denoising, shadow-depth validation)
 - [ ] MC Dropout uncertainty (alternative to deep ensemble)
 - [ ] arXiv paper on novel contributions
 - [ ] Commercial outreach to lunar lander companies
 - [ ] Community launch (Reddit, HN, space Twitter)
 
-## 📜 License
+##  License
 
 MIT — see [LICENSE](LICENSE) if present, otherwise this statement is the license grant.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **Romain Pessia** for the [Artificial Lunar Rocky Landscape Dataset](https://www.kaggle.com/datasets/romainpessia/artificial-lunar-rocky-landscape-dataset) on Kaggle
 - **Pavel Iakubovskii** for [`segmentation_models_pytorch`](https://github.com/qubvel-org/segmentation_models.pytorch)
 - **NASA PGDA** for LOLA gridded products (to be used in Stage 3)
 - **Kaggle** for free T4 GPU compute
 
-## 👤 Author
+##  Author
 
-**Alan Encinas** — solo developer building LunarSite as a portfolio project and genuine contribution to open-source lunar science tooling. Not affiliated with NASA, JPL, or any commercial lunar company. Motivated by childhood excitement about space and the observation that the commercial lunar industry is starting to need tools like this.
+**Alan Scott Encinas** — solo developer building LunarSite as a portfolio project and genuine contribution to open-source lunar science tooling. Not affiliated with NASA, JPL, or any commercial lunar company. Motivated by childhood excitement about space and the observation that the commercial lunar industry is starting to need tools like this.
 
 [GitHub](https://github.com/AlanSEncinas) · [Demo](https://REPLACE_WITH_STREAMLIT_URL)
