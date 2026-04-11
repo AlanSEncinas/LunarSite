@@ -13,9 +13,9 @@
 # numpy 2 support.
 #
 
-# Core ML
-torch>=2.2.0,<2.6
-torchvision>=0.17.0,<0.21
+# Core ML (pinned for Python 3.12 compatibility — see runtime.txt)
+torch>=2.2.0,<2.9
+torchvision>=0.17.0,<0.24
 segmentation-models-pytorch>=0.3.3,<0.5
 
 # Numerics (numpy pinned <2 for compat, see note above)
