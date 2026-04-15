@@ -17,8 +17,10 @@ Working plan with dates. Updated as milestones land or slip.
 
 | Target week | Milestone | Status |
 |---|---|---|
-| 4/14 – 4/19 | Deep ensemble: 5 seeds of v1 config, aggregate script, per-pixel uncertainty map, Streamlit v1 with uncertainty toggle, upload checkpoints to Kaggle dataset | In progress (seeds 2/3 done, 4/5 running) |
-| 4/20 – 5/3 | **Stage 1 Crater Detection** — data download, DEM tile pipeline, U-Net train+eval, Streamlit v2 | Not started |
+| 4/14 – 4/19 | Deep ensemble: 5 seeds of v1 config, aggregate script, per-pixel uncertainty map, Streamlit v1 with uncertainty toggle, upload checkpoints to Kaggle dataset | **Done 4/15** |
+| 4/15 | Stage 1 prep (no-quota CPU work): Robbins south pole subset, LOLA 80MPP DEM, geospatial stack verified, `DeepMoonCraterDataset` class, training notebook + kernel registered, Robbins→LOLA ground-truth mask | **Done 4/15** |
+| 4/18 (Sat) | Push `crater_v1_seed1` on Kaggle quota reset (~5 hr training) | Queued |
+| 4/20 – 5/3 | Stage 1 Crater Detection — eval on LOLA south pole + Robbins mask, Streamlit v2 with crater overlay | Scaffolding done, training pending |
 | 5/4 – 5/17 | **Stage 3 XGBoost Scorer** — LOLA PGDA features, feature matrix, train, SHAP, Artemis region validation | Not started |
 | 5/18 – 5/24 | Integration — end-to-end pipeline script, Streamlit v3 (coordinate input → full output), README refresh | Not started |
 | ~5/24 – 5/31 | **Layer 2 ship** — "LunarSite end-to-end works" launch post | Not started |

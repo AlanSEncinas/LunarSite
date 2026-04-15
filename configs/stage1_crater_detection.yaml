@@ -1,13 +1,20 @@
 # Stage 1: Crater Detection
-# Dataset: Kaggle crater detection + DeepMoon synthetic DEMs
+# Dataset: DeepMoon (Silburt 2019, Zenodo 1133969) - synthetic LOLA-derived DEM
+# tiles with crater ring masks. Binary U-Net segmentation.
+# Validation plan: PGDA LOLA south pole DEM + Robbins 2019 catalog projection.
 
 data:
-  dataset: "lincolnzh/martianlunar-crater-detection-dataset"
+  source: "deepmoon"
+  zenodo_record: "1133969"
+  train_hdf5: "train_images.hdf5"
+  dev_hdf5: "dev_images.hdf5"
+  test_hdf5: "test_images.hdf5"
+  train_craters_hdf5: "train_craters.hdf5"
+  dev_craters_hdf5: "dev_craters.hdf5"
+  test_craters_hdf5: "test_craters.hdf5"
   input_size: 256
   num_classes: 1
-  train_split: 0.8
-  val_split: 0.1
-  test_split: 0.1
+  binary_threshold: 0.0
   seed: 42
 
 model:

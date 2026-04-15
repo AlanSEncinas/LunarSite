@@ -93,6 +93,14 @@ KERNELS: dict[str, KernelSpec] = {
         )
         for n in (4, 5)
     },
+    "crater_v1_seed1": KernelSpec(
+        slug=f"{KAGGLE_USERNAME}/lunarsite-crater-v1-seed1",
+        title="LunarSite Crater v1 Seed1",
+        notebook=REPO_ROOT / "notebooks" / "train_crater_kaggle.ipynb",
+        datasets=[],
+        output_dir=REPO_ROOT / "outputs" / "crater_v1_seed1",
+        is_private=True,
+    ),
 }
 
 
