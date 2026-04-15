@@ -64,16 +64,34 @@ KERNELS: dict[str, KernelSpec] = {
         output_dir=REPO_ROOT / "outputs" / "v1_vs_v2_eval",
         is_private=False,
     ),
+    # Seeds 2-3 live at dashed slugs (Kaggle inserted dash from "Seed 2" title).
+    # Seeds 4-5 use no-space title so slug matches (avoids "Notebook not found" bug).
+    "ensemble_seed2": KernelSpec(
+        slug=f"{KAGGLE_USERNAME}/lunarsite-ensemble-seed-2",
+        title="LunarSite Ensemble Seed 2",
+        notebook=REPO_ROOT / "notebooks" / "train_ensemble_seed2_kaggle.ipynb",
+        datasets=["romainpessia/artificial-lunar-rocky-landscape-dataset"],
+        output_dir=REPO_ROOT / "outputs" / "ensemble_seed2",
+        is_private=True,
+    ),
+    "ensemble_seed3": KernelSpec(
+        slug=f"{KAGGLE_USERNAME}/lunarsite-ensemble-seed-3",
+        title="LunarSite Ensemble Seed 3",
+        notebook=REPO_ROOT / "notebooks" / "train_ensemble_seed3_kaggle.ipynb",
+        datasets=["romainpessia/artificial-lunar-rocky-landscape-dataset"],
+        output_dir=REPO_ROOT / "outputs" / "ensemble_seed3",
+        is_private=True,
+    ),
     **{
         f"ensemble_seed{n}": KernelSpec(
-            slug=f"{KAGGLE_USERNAME}/lunarsite-ensemble-seed-{n}",
-            title=f"LunarSite Ensemble Seed {n}",
+            slug=f"{KAGGLE_USERNAME}/lunarsite-ensemble-seed{n}",
+            title=f"LunarSite Ensemble Seed{n}",
             notebook=REPO_ROOT / "notebooks" / f"train_ensemble_seed{n}_kaggle.ipynb",
             datasets=["romainpessia/artificial-lunar-rocky-landscape-dataset"],
             output_dir=REPO_ROOT / "outputs" / f"ensemble_seed{n}",
             is_private=True,
         )
-        for n in (2, 3, 4, 5)
+        for n in (4, 5)
     },
 }
 
