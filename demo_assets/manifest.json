@@ -21,7 +21,10 @@
         "small_rocks": 0.07337239583333334,
         "large_rocks": 0.03337673611111111,
         "sky": 0.15480902777777777
-      }
+      },
+      "uncertainty": "real_moon/PCAM5_uncertainty.png",
+      "ensemble_mean_uncertainty": 0.014,
+      "ensemble_max_uncertainty": 0.318
     },
     {
       "name": "PCAM6",
@@ -33,7 +36,10 @@
         "small_rocks": 0.046822916666666665,
         "large_rocks": 0.009175347222222222,
         "sky": 0.3869401041666667
-      }
+      },
+      "uncertainty": "real_moon/PCAM6_uncertainty.png",
+      "ensemble_mean_uncertainty": 0.026,
+      "ensemble_max_uncertainty": 0.372
     },
     {
       "name": "PCAM8",
@@ -45,7 +51,10 @@
         "small_rocks": 0.0,
         "large_rocks": 0.073671875,
         "sky": 0.0
-      }
+      },
+      "uncertainty": "real_moon/PCAM8_uncertainty.png",
+      "ensemble_mean_uncertainty": 0.049,
+      "ensemble_max_uncertainty": 0.386
     },
     {
       "name": "PCAM1",
@@ -57,7 +66,10 @@
         "small_rocks": 0.0,
         "large_rocks": 0.05109809027777778,
         "sky": 0.09750434027777778
-      }
+      },
+      "uncertainty": "real_moon/PCAM1_uncertainty.png",
+      "ensemble_mean_uncertainty": 0.029,
+      "ensemble_max_uncertainty": 0.398
     },
     {
       "name": "TCAM7",
@@ -69,7 +81,10 @@
         "small_rocks": 0.42897135416666665,
         "large_rocks": 0.0,
         "sky": 0.4392274305555556
-      }
+      },
+      "uncertainty": "real_moon/TCAM7_uncertainty.png",
+      "ensemble_mean_uncertainty": 0.138,
+      "ensemble_max_uncertainty": 0.377
     },
     {
       "name": "TCAM21",
@@ -81,7 +96,10 @@
         "small_rocks": 0.5146267361111111,
         "large_rocks": 0.0,
         "sky": 0.10970052083333333
-      }
+      },
+      "uncertainty": "real_moon/TCAM21_uncertainty.png",
+      "ensemble_mean_uncertainty": 0.055,
+      "ensemble_max_uncertainty": 0.377
     }
   ],
   "synthetic_example": {
@@ -109,5 +127,10 @@
       "sky": 0.9389158158880754
     },
     "mean_iou": 0.873140585799782
+  },
+  "ensemble": {
+    "n_members": 5,
+    "test_tta_mean": 0.8445,
+    "test_tta_stdev": 0.0013
   }
 }

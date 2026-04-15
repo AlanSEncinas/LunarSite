@@ -157,6 +157,14 @@ with st.expander("Model details and test set performance", expanded=False):
                 st.text(f"  {c:<14}{v:.4f}")
         else:
             st.text("Test mIoU: 0.8456")
+        if manifest and "ensemble" in manifest:
+            ens = manifest["ensemble"]
+            st.markdown("**Deep ensemble (Layer 2)**")
+            st.text(
+                f"{ens['n_members']} members | "
+                f"mean test TTA mIoU: {ens['test_tta_mean']:.4f} | "
+                f"stdev: {ens['test_tta_stdev']:.4f}"
+            )
 
 st.divider()
 
@@ -176,11 +184,31 @@ if manifest and manifest.get("real_moon_examples"):
         format_func=lambda i: f"{examples[i]['name']} — {examples[i]['caption']}",
     )
     ex = examples[selected_idx]
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.image(str(DEMO_DIR / ex["input"]), caption="Real moon photo (center-cropped)", use_container_width=True)
-    with col2:
-        st.image(str(DEMO_DIR / ex["overlay"]), caption="Model prediction overlay", use_container_width=True)
+    show_uncertainty = st.toggle(
+        "Show ensemble uncertainty",
+        value=False,
+        help="Per-pixel disagreement across a 5-model deep ensemble (brighter = less confident).",
+    )
+    if show_uncertainty and ex.get("uncertainty"):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.image(str(DEMO_DIR / ex["input"]), caption="Real moon photo (center-cropped)", use_container_width=True)
+        with col2:
+            st.image(str(DEMO_DIR / ex["overlay"]), caption="Prediction (seed 1)", use_container_width=True)
+        with col3:
+            st.image(str(DEMO_DIR / ex["uncertainty"]), caption="Ensemble uncertainty (5 seeds)", use_container_width=True)
+        if "ensemble_mean_uncertainty" in ex:
+            st.caption(
+                f"Mean uncertainty: {ex['ensemble_mean_uncertainty']:.3f}  |  "
+                f"Max: {ex['ensemble_max_uncertainty']:.3f}  "
+                f"(bright pixels = ensemble disagreement, usually on class boundaries)"
+            )
+    else:
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            st.image(str(DEMO_DIR / ex["input"]), caption="Real moon photo (center-cropped)", use_container_width=True)
+        with col2:
+            st.image(str(DEMO_DIR / ex["overlay"]), caption="Model prediction overlay", use_container_width=True)
     render_coverage_bars(ex["coverage"])
 
     with st.expander("Legend and known failure modes"):
