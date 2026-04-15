@@ -64,6 +64,17 @@ KERNELS: dict[str, KernelSpec] = {
         output_dir=REPO_ROOT / "outputs" / "v1_vs_v2_eval",
         is_private=False,
     ),
+    **{
+        f"ensemble_seed{n}": KernelSpec(
+            slug=f"{KAGGLE_USERNAME}/lunarsite-ensemble-seed-{n}",
+            title=f"LunarSite Ensemble Seed {n}",
+            notebook=REPO_ROOT / "notebooks" / f"train_ensemble_seed{n}_kaggle.ipynb",
+            datasets=["romainpessia/artificial-lunar-rocky-landscape-dataset"],
+            output_dir=REPO_ROOT / "outputs" / f"ensemble_seed{n}",
+            is_private=True,
+        )
+        for n in (2, 3, 4, 5)
+    },
 }
 
 
