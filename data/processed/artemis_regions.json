@@ -1,0 +1,15 @@
+{
+  "source": "Aggregated from LPSC 2024/2025, IAU Gazetteer, arXiv 2406.19863; see TIMELINE.md / Stage 3 research notes",
+  "shapefile_authoritative": "https://doi.org/10.5066/P1MEQ6UK (USGS, 9 zipped shapefile bundles, LGRS ACC, polar stereographic)",
+  "regions": [
+    {"name": "Peak near Cabeus B",   "lat_deg": -82.25, "lon_deg": -48.50},
+    {"name": "Haworth",              "lat_deg": -87.45, "lon_deg":  -4.40},
+    {"name": "Malapert Massif",      "lat_deg": -85.99, "lon_deg":   2.93},
+    {"name": "Mons Mouton Plateau",  "lat_deg": -84.00, "lon_deg":  30.50},
+    {"name": "Mons Mouton",          "lat_deg": -84.60, "lon_deg":  31.00},
+    {"name": "Nobile Rim 1",         "lat_deg": -85.33, "lon_deg":  42.85},
+    {"name": "Nobile Rim 2",         "lat_deg": -84.20, "lon_deg":  60.70},
+    {"name": "de Gerlache Rim 2",    "lat_deg": -88.73, "lon_deg": -68.00},
+    {"name": "Slater Plain",         "lat_deg": -88.15, "lon_deg": -34.00}
+  ]
+}
