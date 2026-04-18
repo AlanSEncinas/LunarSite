@@ -34,6 +34,35 @@ from scipy import ndimage
 from lunarsite.features.grid import iter_grid
 from lunarsite.features.lola_features import LolaFeatureExtractor
 
+
+def warp_raster_to_ref(src_path: Path, ref_path: Path, out_path: Path) -> None:
+    """Reproject src_path onto the grid of ref_path. Writes to out_path (GeoTIFF, LZW)."""
+    with rasterio.open(ref_path) as ref:
+        ref_transform = ref.transform
+        ref_crs = ref.crs
+        ref_h, ref_w = ref.height, ref.width
+        ref_dtype = ref.dtypes[0]
+    with rasterio.open(src_path) as src:
+        src_data = src.read(1).astype(np.float32)
+        src_transform = src.transform
+        src_crs = src.crs
+        src_nodata = src.nodata
+    dst = np.full((ref_h, ref_w), np.nan, dtype=np.float32)
+    reproject(
+        source=src_data, destination=dst,
+        src_transform=src_transform, src_crs=src_crs,
+        dst_transform=ref_transform, dst_crs=ref_crs,
+        src_nodata=src_nodata, dst_nodata=np.nan,
+        resampling=Resampling.bilinear,
+    )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with rasterio.open(
+        out_path, "w",
+        driver="GTiff", height=ref_h, width=ref_w, count=1, dtype="float32",
+        crs=ref_crs, transform=ref_transform, compress="lzw", nodata=np.nan,
+    ) as dst_ds:
+        dst_ds.write(dst, 1)
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -100,19 +129,40 @@ def build_features(
     cell_size_m: float,
     max_lat_deg: float = -80.0,
 ) -> pd.DataFrame:
-    extractor = LolaFeatureExtractor(
-        elevation_path=dem_path,
-        slope_path=slope_path,
-        roughness_path=roughness_path,
-        error_path=error_path,
-    )
-
+    # Use DEM as the reference grid for all rasters. LolaFeatureExtractor expects
+    # every input raster to share the DEM's shape, so paths whose native grid
+    # differs (slope at 20 m/px when DEM is 80 m/px, etc.) are reprojected here.
     with rasterio.open(dem_path) as ds:
         pixel_size_m = abs(ds.transform.a)
+        ref_shape = (ds.height, ds.width)
+
+    def _maybe_warp_to_match(path: Path | None, label: str) -> Path | None:
+        if not path or not path.exists():
+            return None
+        with rasterio.open(path) as src:
+            if (src.height, src.width) == ref_shape:
+                return path
+        warped = path.with_suffix(f".warped_to_{ref_shape[0]}x{ref_shape[1]}.tif")
+        if not warped.exists():
+            print(f"  reprojecting {label} {path.name} -> DEM grid ...")
+            warp_raster_to_ref(path, dem_path, warped)
+        return warped
+
+    extractor = LolaFeatureExtractor(
+        elevation_path=dem_path,
+        slope_path=_maybe_warp_to_match(slope_path, "slope"),
+        roughness_path=_maybe_warp_to_match(roughness_path, "roughness"),
+        error_path=_maybe_warp_to_match(error_path, "error"),
+    )
 
     crater_mask = None
     if crater_mask_path and crater_mask_path.exists():
         with rasterio.open(crater_mask_path) as ds:
+            if (ds.height, ds.width) != ref_shape:
+                raise ValueError(
+                    f"crater mask shape {(ds.height, ds.width)} != DEM shape {ref_shape}. "
+                    f"Re-run crater_eval_lola.py on the same DEM, or drop the --crater-mask flag."
+                )
             crater_mask = ds.read(1).astype(np.uint8)
 
     # Load DEM once as the reference grid (shape + CRS + transform).
