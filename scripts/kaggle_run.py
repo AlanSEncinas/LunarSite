@@ -58,7 +58,7 @@ KERNELS: dict[str, KernelSpec] = {
         title="LunarSite Eval v1 vs v2",
         notebook=REPO_ROOT / "notebooks" / "eval_v1_vs_v2_kaggle.ipynb",
         datasets=[
-            f"{KAGGLE_USERNAME}/lunarsite-checkpoints",
+            f"{KAGGLE_USERNAME}/lunarsite-weights",
             "romainpessia/artificial-lunar-rocky-landscape-dataset",
         ],
         output_dir=REPO_ROOT / "outputs" / "v1_vs_v2_eval",
@@ -106,7 +106,7 @@ KERNELS: dict[str, KernelSpec] = {
         title="LunarSite Crater v2 Finetune Seed1",
         notebook=REPO_ROOT / "notebooks" / "finetune_crater_southpole_kaggle.ipynb",
         datasets=[
-            f"{KAGGLE_USERNAME}/lunarsite-checkpoints",
+            f"{KAGGLE_USERNAME}/lunarsite-weights",
             f"{KAGGLE_USERNAME}/lunarsite-southpole-finetune",
         ],
         output_dir=REPO_ROOT / "outputs" / "crater_v2_finetune_seed1",
