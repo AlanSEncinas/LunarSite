@@ -115,6 +115,80 @@ def artemis_overlap_table(ranked_parquet: Path, artemis_json: Path) -> dict:
     return result
 
 
+def build_psr_map(
+    dem_path: Path,
+    features_parquet: Path,
+    ranked_parquet: Path,
+    out_png: Path,
+    psr_threshold_pct: float = 0.5,
+) -> dict:
+    """Hillshade + PSR shading (cells with illumination_min < threshold) +
+    top-100 cells overlaid. Returns per-top-N PSR stats for the manifest.
+
+    Visually proves that top-ranked cells sit outside permanently shadowed
+    regions — quantitative backup for the Layer 3 "Dark Terrain" story
+    without needing ShadowCam imagery."""
+    with rasterio.open(dem_path) as ds:
+        dem = ds.read(1)
+        bounds = ds.bounds
+
+    hs = hillshade(dem)
+    feats = pd.read_parquet(features_parquet)
+    ranked = pd.read_parquet(ranked_parquet)
+    top100 = ranked.head(100).merge(
+        feats[["cell_id", "psr_fraction", "illumination_min_pct"]], on="cell_id"
+    )
+
+    # Compute raster-aligned PSR mask from feats (each cell is ~1 km = ~12 px
+    # on the 80 m/px DEM; we mark PSR cells by their center coord).
+    psr_cells = feats[feats["illumination_min_pct"].fillna(100) < psr_threshold_pct]
+
+    fig, ax = plt.subplots(figsize=(10, 10), facecolor="#0e0e14")
+    ax.set_facecolor("#0e0e14")
+    ax.imshow(hs, cmap="gray",
+              extent=[bounds.left / 1000, bounds.right / 1000,
+                      bounds.bottom / 1000, bounds.top / 1000])
+    ax.scatter(psr_cells.x_m / 1000, psr_cells.y_m / 1000,
+               s=1.5, c="#ff3b5c", alpha=0.35, edgecolors="none",
+               label=f"PSR cells (illum_min < {psr_threshold_pct:g}%)  "
+                     f"n={len(psr_cells):,}")
+    ax.scatter(top100.x_m / 1000, top100.y_m / 1000,
+               s=55, c="#ffdf66", edgecolors="black", linewidths=0.8, zorder=5,
+               label="LunarSite top 100 cells")
+
+    ax.set_xlabel("Polar stereographic x (km)", color="#cfd3dc")
+    ax.set_ylabel("Polar stereographic y (km)", color="#cfd3dc")
+    ax.set_title("Top-100 sites avoid permanently shadowed regions "
+                 f"(PSR threshold: illum_min < {psr_threshold_pct:g}%)",
+                 color="#e8eaf0", pad=12)
+    ax.tick_params(colors="#cfd3dc")
+    for spine in ax.spines.values():
+        spine.set_color("#2a2f3b")
+    ax.legend(loc="upper right", facecolor="#1a1a24", edgecolor="#2a2f3b",
+              labelcolor="#e8eaf0", fontsize=9)
+
+    out_png.parent.mkdir(parents=True, exist_ok=True)
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=130, facecolor=fig.get_facecolor())
+    plt.close(fig)
+
+    stats = {}
+    for n in (10, 100, 500):
+        sub = ranked.head(n).merge(
+            feats[["cell_id", "psr_fraction", "illumination_min_pct"]], on="cell_id"
+        )
+        stats[f"top_{n}"] = {
+            "mean_psr_fraction": round(float(sub["psr_fraction"].mean()), 6),
+            "max_psr_fraction":  round(float(sub["psr_fraction"].max()), 6),
+            "mean_illum_min_pct": round(float(sub["illumination_min_pct"].mean()), 3),
+            "cells_with_any_psr": int((sub["psr_fraction"] > 0).sum()),
+            "cells_illum_min_below_1pct": int((sub["illumination_min_pct"] < 1).sum()),
+        }
+    stats["psr_threshold_pct"] = psr_threshold_pct
+    stats["total_psr_cells_in_grid"] = int(len(psr_cells))
+    return stats
+
+
 def build_crater_overlay_demo(dem_path: Path, mask_path: Path, out_png: Path, max_side: int = 1600) -> None:
     with rasterio.open(dem_path) as ds:
         dem = ds.read(1)
@@ -158,14 +232,22 @@ def main() -> None:
         print("  ->", stage3 / "shap_summary.png")
 
     print("Writing top 10 CSV + Artemis overlap JSON...")
-    feats = pd.read_parquet(REPO_ROOT / "data/processed/stage3_features_80mpp_1km.parquet")
+    features_parquet = REPO_ROOT / "data/processed/stage3_features_80mpp_1km.parquet"
+    feats = pd.read_parquet(features_parquet)
     rk = pd.read_parquet(ranked)
     top10 = rk.head(10).merge(feats, on="cell_id", suffixes=("", "_f"))
     top10[["lat", "lon", "score", "elevation_mean", "slope_mean",
-           "avg_illumination_pct", "earth_visibility_pct"]].round(3).to_csv(
+           "avg_illumination_pct", "illumination_min_pct", "psr_fraction",
+           "earth_visibility_pct"]].round(3).to_csv(
         stage3 / "top10.csv", index=False)
     (stage3 / "artemis_overlap.json").write_text(
         json.dumps(artemis_overlap_table(ranked, artemis_json), indent=2))
+
+    print("Building PSR exposure map...")
+    psr_stats = build_psr_map(dem, features_parquet, ranked, stage3 / "psr_map.png")
+    print("  ->", stage3 / "psr_map.png")
+    print(f"  Top 100 cells: mean PSR {psr_stats['top_100']['mean_psr_fraction']:.4f}, "
+          f"{psr_stats['top_100']['cells_with_any_psr']} have any PSR pixel")
 
     print("Building Stage 1 crater overlay demo...")
     build_crater_overlay_demo(dem, crater_mask, stage1 / "crater_overlay.png")
@@ -177,11 +259,14 @@ def main() -> None:
     m["stage3"] = {
         "top_sites_map": "stage3/top_sites_map.png",
         "shap_summary": "stage3/shap_summary.png",
+        "psr_map": "stage3/psr_map.png",
         "top10_csv": "stage3/top10.csv",
         "artemis_overlap_json": "stage3/artemis_overlap.json",
         "n_cells": int(len(rk)),
         "n_suitable": int(rk["suitable_cassa"].sum()),
+        "n_features": int(len(feats.columns) - 5),  # minus cell_id, lon, lat, x_m, y_m
         "cassa_thresholds": {"slope_max_deg": 5.0, "illumination_min_pct": 33.0, "earth_visibility_min_pct": 50.0},
+        "psr_exposure": psr_stats,
     }
     m["stage1"] = {
         "crater_overlay": "stage1/crater_overlay.png",

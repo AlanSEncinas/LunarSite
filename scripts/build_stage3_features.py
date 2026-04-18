@@ -117,6 +117,31 @@ def _sample_at_cell(
 # 100% visibility; divide by 255 and multiply by 100 to get percent.
 AVGVISIB_TO_PCT_SCALE = 100.0 / 25500.0
 
+# Permanently Shadowed Region definition. Mazarico et al. 2011 (Icarus)
+# uses < 0.1% solar illumination as strict PSR; 0.5% captures near-PSR
+# regions that also suffer severe thermal/communication limitations.
+PSR_ILLUMINATION_THRESHOLD_PCT = 0.5
+
+
+def _psr_features_at_cell(
+    illumination_pct: np.ndarray | None,
+    row_slice: tuple[int, int],
+    col_slice: tuple[int, int],
+) -> dict[str, float]:
+    """Per-cell PSR statistics derived from the PGDA illumination raster
+    (already scaled to percent). Returns psr_fraction (0..1) and the cell's
+    minimum illumination."""
+    if illumination_pct is None:
+        return {"psr_fraction": float("nan"), "illumination_min_pct": float("nan")}
+    r0, r1 = row_slice
+    c0, c1 = col_slice
+    patch = illumination_pct[r0:r1, c0:c1]
+    valid = patch[np.isfinite(patch)]
+    if valid.size == 0:
+        return {"psr_fraction": float("nan"), "illumination_min_pct": float("nan")}
+    psr_frac = float((valid < PSR_ILLUMINATION_THRESHOLD_PCT).mean())
+    return {"psr_fraction": psr_frac, "illumination_min_pct": float(valid.min())}
+
 
 def build_features(
     dem_path: Path,
@@ -196,6 +221,9 @@ def build_features(
 
     illumination = _warp_to_dem(illumination_path)
     earth_vis = _warp_to_dem(earth_vis_path)
+    # Pre-scale illumination to percent once so _psr_features_at_cell can
+    # compare against PSR_ILLUMINATION_THRESHOLD_PCT directly.
+    illumination_pct = illumination * AVGVISIB_TO_PCT_SCALE if illumination is not None else None
 
     rows = []
     t0 = time.time()
@@ -224,6 +252,9 @@ def build_features(
         feats.update(_sample_at_cell(
             illumination, cell.row_slice, cell.col_slice,
             "avg_illumination_pct", scale=AVGVISIB_TO_PCT_SCALE,
+        ))
+        feats.update(_psr_features_at_cell(
+            illumination_pct, cell.row_slice, cell.col_slice,
         ))
         feats.update(_sample_at_cell(
             earth_vis, cell.row_slice, cell.col_slice,

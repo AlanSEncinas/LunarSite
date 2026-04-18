@@ -168,14 +168,15 @@ Four-module pipeline with dark terrain analysis:
 
 _Everything below is Tier 3 (post-ship). Do not start until Tier 2 is shipped._
 
-### Phase 5: Dark Terrain Analysis Module  _(Tier 3, deferred)_
+### Phase 5: Dark Terrain Analysis Module  _(Tier 3, in progress)_
 - [x] Depth estimation module (Depth Anything V2 wrapper, shadow-based depth) — code exists, not validated
 - [x] HORUS-style dark image enhancement (DestripeNet + PhotonNet) — code exists, not validated
 - [x] Illumination decomposition (albedo/shading separation) — code exists, not validated
-- [ ] ShadowCam data download + preprocessing
-- [ ] Shadow-to-depth pipeline on south pole imagery
-- [ ] Validate depth estimates against LOLA DEM ground truth
-- [ ] Add dark terrain features (PSR fraction, shadow depth, SAR backscatter, thermal inertia) to Stage 3 feature matrix
+- [x] ShadowCam data download + preprocessing (Cabeus/LCROSS from Zenodo DOI 10.5281/zenodo.11175455, 10.3 GB, CC-BY-4.0). Extracted composites + DEM-and-ortho subsets (~543 MB) to `D:/shadowcam/extracted/`.
+- [x] Add dark terrain features to Stage 3: `psr_fraction` and `illumination_min_pct` per cell from PGDA AVGVISIB (Mazarico 2011). `illumination_min_pct` lands in top-7 SHAP features. Top 100 ranked cells have 0 PSR ground coverage — empirical proof the scorer already avoids PSRs.
+- [x] Cross-instrument PSR validation ([scripts/shadowcam_psr_validate.py](scripts/shadowcam_psr_validate.py)): **81–85 % of ShadowCam's deepest-observed-shadow pixels at Cabeus fall inside PGDA-predicted PSRs**. Both instruments converge on the same deep-shadow regions. Outputs: `outputs/shadowcam_validation/` (side_by_side_*.png, psr_agreement.json).
+- [ ] Shadow-to-depth pipeline on south pole imagery (Day 2 of Week 2)
+- [ ] Validate depth estimates against LOLA DEM ground truth (Day 2 of Week 2)
 
 ### Phase 6: Advanced Uncertainty  _(Tier 3, in progress)_
 - [~] MC Dropout proper implementation on production ResNet (inject dropout, retrain/fine-tune, validate calibration)

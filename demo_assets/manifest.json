@@ -186,14 +186,41 @@
   "stage3": {
     "top_sites_map": "stage3/top_sites_map.png",
     "shap_summary": "stage3/shap_summary.png",
+    "psr_map": "stage3/psr_map.png",
     "top10_csv": "stage3/top10.csv",
     "artemis_overlap_json": "stage3/artemis_overlap.json",
     "n_cells": 315034,
     "n_suitable": 419,
+    "n_features": 24,
     "cassa_thresholds": {
       "slope_max_deg": 5.0,
       "illumination_min_pct": 33.0,
       "earth_visibility_min_pct": 50.0
+    },
+    "psr_exposure": {
+      "top_10": {
+        "mean_psr_fraction": 0.0,
+        "max_psr_fraction": 0.0,
+        "mean_illum_min_pct": 26.226,
+        "cells_with_any_psr": 0,
+        "cells_illum_min_below_1pct": 0
+      },
+      "top_100": {
+        "mean_psr_fraction": 0.0,
+        "max_psr_fraction": 0.0,
+        "mean_illum_min_pct": 25.655,
+        "cells_with_any_psr": 0,
+        "cells_illum_min_below_1pct": 0
+      },
+      "top_500": {
+        "mean_psr_fraction": 8.3e-05,
+        "max_psr_fraction": 0.013889,
+        "mean_illum_min_pct": 21.574,
+        "cells_with_any_psr": 5,
+        "cells_illum_min_below_1pct": 10
+      },
+      "psr_threshold_pct": 0.5,
+      "total_psr_cells_in_grid": 25891
     }
   },
   "stage1": {
