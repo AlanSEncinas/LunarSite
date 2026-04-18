@@ -229,6 +229,35 @@ if manifest and manifest.get("real_moon_examples"):
 else:
     st.info("Demo assets not found. Run `python scripts/build_demo_assets.py` to generate them.")
 
+# --- Real south pole orbital imagery ---
+if manifest and manifest.get("south_pole_examples"):
+    st.header("Real south pole orbital imagery")
+    st.markdown(
+        "Zero-shot transfer to **real LRO and NASA south pole orbital imagery**. The model "
+        "was trained only on synthetic Unreal Engine lunar *surface* renders — it has never seen "
+        "orbital views and never seen the south pole. These predictions are what it does with no "
+        "fine-tuning, no domain adaptation. Class distributions remain roughly consistent with "
+        "training (bg ~85% on orbital vs 76% on surface, small_rocks proportional)."
+    )
+    sp_examples = manifest["south_pole_examples"]
+    sp_idx = st.selectbox(
+        "Select south pole example",
+        range(len(sp_examples)),
+        format_func=lambda i: f"{sp_examples[i]['name']} — {sp_examples[i]['caption']}",
+        key="sp_select",
+    )
+    sp = sp_examples[sp_idx]
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.image(str(DEMO_DIR / sp["input"]),
+                 caption=f"Real south pole image (center-cropped): {sp['name']}",
+                 use_container_width=True)
+    with col2:
+        st.image(str(DEMO_DIR / sp["overlay"]),
+                 caption="Stage 2 prediction (zero-shot, no fine-tuning)",
+                 use_container_width=True)
+    render_coverage_bars(sp["coverage"])
+
 # --- Synthetic benchmark ---
 st.header("Synthetic benchmark")
 if manifest and manifest.get("synthetic_example"):

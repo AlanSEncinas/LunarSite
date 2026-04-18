@@ -132,5 +132,55 @@
     "n_members": 5,
     "test_tta_mean": 0.8445,
     "test_tta_stdev": 0.0013
-  }
+  },
+  "south_pole_examples": [
+    {
+      "name": "PIA00001",
+      "caption": "LRO south pole region mosaic (orbital altitude)",
+      "input": "south_pole/PIA00001_input.png",
+      "overlay": "south_pole/PIA00001_overlay.png",
+      "coverage": {
+        "background": 0.7917751736111112,
+        "small_rocks": 0.1654123263888889,
+        "large_rocks": 0.004071180555555555,
+        "sky": 0.03874131944444444
+      }
+    },
+    {
+      "name": "PIA00002",
+      "caption": "LRO north pole mosaic (included as a comparison polar view)",
+      "input": "south_pole/PIA00002_input.png",
+      "overlay": "south_pole/PIA00002_overlay.png",
+      "coverage": {
+        "background": 0.8986067708333333,
+        "small_rocks": 0.08848090277777777,
+        "large_rocks": 0.002486979166666667,
+        "sky": 0.010425347222222223
+      }
+    },
+    {
+      "name": "PIA13523",
+      "caption": "Lunar south pole hemisphere, LRO global mosaic",
+      "input": "south_pole/PIA13523_input.png",
+      "overlay": "south_pole/PIA13523_overlay.png",
+      "coverage": {
+        "background": 0.9420095486111111,
+        "small_rocks": 0.043719618055555555,
+        "large_rocks": 0.007313368055555556,
+        "sky": 0.006957465277777778
+      }
+    },
+    {
+      "name": "ART002",
+      "caption": "Artemis-era NASA lunar close-up",
+      "input": "south_pole/art002e009283_input.png",
+      "overlay": "south_pole/art002e009283_overlay.png",
+      "coverage": {
+        "background": 0.7816449652777778,
+        "small_rocks": 0.1622699652777778,
+        "large_rocks": 0.04308159722222222,
+        "sky": 0.013003472222222222
+      }
+    }
+  ]
 }

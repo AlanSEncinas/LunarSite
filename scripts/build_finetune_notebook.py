@@ -65,10 +65,19 @@ VAL_FRAC = 0.10
 TEST_FRAC = 0.10
 
 WORK = Path('/kaggle/working')
-# v1 checkpoint comes from the checkpoints dataset (attached as input):
-V1_CKPT = Path('/kaggle/input/lunarsite-checkpoints/best_craterunet_seed1.pt')
-# Fine-tuning HDF5 comes from the southpole dataset (attached as input):
-FINETUNE_H5 = Path('/kaggle/input/lunarsite-southpole-finetune/southpole_finetune_118mpp.hdf5')
+# Discover inputs robustly -- Kaggle sometimes renames attached dataset dirs.
+def _find_in_kaggle_input(needle: str) -> Path:
+    root = Path('/kaggle/input')
+    if not root.exists():
+        raise FileNotFoundError(f'{root} missing')
+    hits = list(root.rglob(needle))
+    if not hits:
+        visible = [str(p) for p in root.rglob('*') if p.is_file()][:20]
+        raise FileNotFoundError(f'{needle} not found. Visible files: {visible}')
+    return hits[0]
+
+V1_CKPT = _find_in_kaggle_input('best_craterunet_seed1.pt')
+FINETUNE_H5 = _find_in_kaggle_input('southpole_finetune_118mpp.hdf5')
 
 CKPT_PATH = WORK / f'best_craterunet_v2_southpole_seed{SEED}.pt'
 SUMMARY_PATH = WORK / f'summary_v2_seed{SEED}.json'
