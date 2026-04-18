@@ -61,7 +61,7 @@ python scripts/kaggle_run.py run eval_v1_vs_v2       # Full loop: push + wait + 
 
 # Dataset versioning (e.g. updating checkpoint dataset)
 kaggle datasets version -p tmp_upload/ -m "version notes"
-kaggle datasets files encinas88/lunarsite-checkpoints
+kaggle datasets files encinas88/lunarsite-weights
 ```
 
 ## Kaggle Workflow
@@ -70,7 +70,7 @@ LunarSite uses Kaggle's free T4 GPUs for training and eval. The workflow is auto
 
 1. **Register a new kernel:** add an entry to the `KERNELS` dict in `scripts/kaggle_run.py` with slug, notebook path, accelerator, and dataset dependencies.
 2. **One-command run:** `python scripts/kaggle_run.py run <name>` pushes the notebook, polls until complete, and pulls outputs to `outputs/<name>/`.
-3. **Checkpoints dataset:** trained model weights live in the private `encinas88/lunarsite-checkpoints` Kaggle dataset. Update with `kaggle datasets version` to publish new versions — the eval notebook auto-downloads the latest via `kagglehub`.
+3. **Checkpoints dataset:** trained model weights live in the private `encinas88/lunarsite-weights` Kaggle dataset. Update with `kaggle datasets version` to publish new versions — the eval notebook auto-downloads the latest via `kagglehub`.
 4. **No browser clicks for reruns:** once a kernel is registered, re-running it is one command. The metadata (GPU, internet, datasets) is baked into `KERNELS`, not the Kaggle UI.
 
 **Why this matters:** the manual browser flow (import notebook → attach dataset → set GPU → Run All → download outputs) takes ~5 minutes of clicks per run and is error-prone (easy to forget to attach a dataset). The script eliminates all of that. For ensemble training (5 seeds × future configs) this is the difference between an hour of clicking and a single script invocation.
@@ -177,8 +177,13 @@ _Everything below is Tier 3 (post-ship). Do not start until Tier 2 is shipped._
 - [ ] Validate depth estimates against LOLA DEM ground truth
 - [ ] Add dark terrain features (PSR fraction, shadow depth, SAR backscatter, thermal inertia) to Stage 3 feature matrix
 
-### Phase 6: Advanced Uncertainty  _(Tier 3, deferred)_
-- [ ] MC Dropout proper implementation on production ResNet (inject dropout, retrain/fine-tune, validate calibration)
+### Phase 6: Advanced Uncertainty  _(Tier 3, in progress)_
+- [~] MC Dropout proper implementation on production ResNet (inject dropout, retrain/fine-tune, validate calibration)
+  - [x] Sanity-check `add_mc_dropout()` on the production ResNet-34 checkpoint ([scripts/mc_dropout_sanity.py](scripts/mc_dropout_sanity.py)) — 27 Dropout2d modules inject cleanly, MC sampling produces non-trivial variance, as-expected calibration gap from training without dropout
+  - [x] Add `--mc-dropout`, `--dropout-p`, `--resume-from`, `--epochs`, `--lr`, `--tag` flags to [scripts/train_segmenter.py](scripts/train_segmenter.py)
+  - [x] Fine-tune (10 epochs, lr 2e-5, p=0.1) from `best_resnet34.pt` on local RTX 4070 (2026-04-18). Best val mIoU 0.8134 (-0.02 vs non-dropout baseline), test mIoU 0.8181. Checkpoint: `models/best_segmenter_mcdropout.pt`.
+  - [x] Calibration eval: [scripts/mc_dropout_calibrate.py](scripts/mc_dropout_calibrate.py). **ECE = 0.0072** (textbook-calibrated) across 46M pixels. OOD real-moon mutual info **4.7× higher** than in-domain (0.192 vs 0.041) — MC Dropout reliably flags out-of-distribution inputs. Outputs: [outputs/mc_dropout_eval/](outputs/mc_dropout_eval/) (reliability.png, uncertainty_histogram.png, calibration.json).
+  - [x] Streamlit demo integration ([streamlit_app.py](streamlit_app.py)) — MC Dropout mode + entropy/MI heatmaps in the upload box; auto-hides if checkpoint missing
 - [ ] LuSNAR supplementary data integration
 - [ ] DINOv2 encoder — revisit if baseline results warrant
 

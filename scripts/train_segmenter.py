@@ -138,10 +138,32 @@ def main() -> None:
         default=None,
         help="Limit total dataset size (for quick CPU experiments).",
     )
+    parser.add_argument(
+        "--mc-dropout",
+        action="store_true",
+        help="Inject Dropout2d after every ReLU for MC Dropout training.",
+    )
+    parser.add_argument("--dropout-p", type=float, default=0.1,
+                        help="Dropout probability when --mc-dropout is set.")
+    parser.add_argument("--resume-from", type=Path, default=None,
+                        help="Path to a checkpoint .pt to warm-start from.")
+    parser.add_argument("--epochs", type=int, default=None,
+                        help="Override training.epochs from the config.")
+    parser.add_argument("--lr", type=float, default=None,
+                        help="Override training.learning_rate from the config.")
+    parser.add_argument("--tag", type=str, default="",
+                        help="Suffix for checkpoint + log filenames (e.g. 'mcdropout').")
     args = parser.parse_args()
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
+
+    # CLI overrides for quick experiments / fine-tuning.
+    if args.epochs is not None:
+        config["training"]["epochs"] = args.epochs
+        config["training"].setdefault("scheduler_params", {})["T_max"] = args.epochs
+    if args.lr is not None:
+        config["training"]["learning_rate"] = args.lr
 
     # --- Device ---
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -207,6 +229,23 @@ def main() -> None:
         classes=model_cfg["classes"],
     ).to(device)
 
+    # Warm-start from a prior checkpoint if requested (for fine-tuning).
+    if args.resume_from is not None:
+        ckpt = torch.load(args.resume_from, map_location=device, weights_only=False)
+        state = ckpt.get("model_state_dict") or ckpt.get("model")
+        model.load_state_dict(state)
+        print(f"Warm-started from {args.resume_from}  "
+              f"(best_val={ckpt.get('best_val_miou') or ckpt.get('best_metric')})")
+
+    # Inject dropout for MC Dropout training. Must happen AFTER resume-from
+    # (the checkpoint has no dropout modules), so the optimizer sees the
+    # augmented parameter set.
+    if args.mc_dropout:
+        from lunarsite.utils.uncertainty import add_mc_dropout
+        add_mc_dropout(model, p=args.dropout_p)
+        n_do = sum(1 for m in model.modules() if isinstance(m, torch.nn.Dropout2d))
+        print(f"Injected {n_do} Dropout2d(p={args.dropout_p}) modules for MC Dropout.")
+
     param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Model: U-Net + {model_cfg['encoder']} ({param_count:,} params)")
 
@@ -233,6 +272,10 @@ def main() -> None:
     log_dir = Path(output_cfg["log_dir"])
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
+    tag_suffix = f"_{args.tag}" if args.tag else ""
+    ckpt_name = f"best_segmenter{tag_suffix}.pt"
+    log_name = f"segmenter{tag_suffix}_training_log.json"
+    test_results_name = f"segmenter{tag_suffix}_test_results.json"
 
     # --- Training loop ---
     num_classes = data_cfg["num_classes"]
@@ -292,19 +335,19 @@ def main() -> None:
                     "best_metric": best_metric,
                     "config": config,
                 },
-                checkpoint_dir / "best_segmenter.pt",
+                checkpoint_dir / ckpt_name,
             )
             print(f"         ** New best mIoU: {best_metric:.4f} — saved checkpoint **")
 
     # --- Save training log ---
-    with open(log_dir / "segmenter_training_log.json", "w") as f:
+    with open(log_dir / log_name, "w") as f:
         json.dump(training_log, f, indent=2)
-    print(f"\nTraining log saved to {log_dir / 'segmenter_training_log.json'}")
+    print(f"\nTraining log saved to {log_dir / log_name}")
 
     # --- Final evaluation on test set ---
     print("\n" + "=" * 80)
     print("Evaluating on test set...")
-    checkpoint = torch.load(checkpoint_dir / "best_segmenter.pt", map_location=device, weights_only=False)
+    checkpoint = torch.load(checkpoint_dir / ckpt_name, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
 
     test_metrics = evaluate(model, test_loader, criterion, device, num_classes)
@@ -331,9 +374,9 @@ def main() -> None:
         },
         "best_epoch": checkpoint["epoch"],
     }
-    with open(log_dir / "segmenter_test_results.json", "w") as f:
+    with open(log_dir / test_results_name, "w") as f:
         json.dump(test_results, f, indent=2)
-    print(f"\nTest results saved to {log_dir / 'segmenter_test_results.json'}")
+    print(f"\nTest results saved to {log_dir / test_results_name}")
 
 
 if __name__ == "__main__":

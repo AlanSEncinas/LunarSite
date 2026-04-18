@@ -23,6 +23,7 @@ import torch.nn.functional as F
 
 REPO_ROOT = Path(__file__).resolve().parent
 CHECKPOINT_PATH = REPO_ROOT / "best_resnet34.pt"
+MC_CHECKPOINT_PATH = REPO_ROOT / "models" / "best_segmenter_mcdropout.pt"
 DEMO_DIR = REPO_ROOT / "demo_assets"
 MANIFEST_PATH = DEMO_DIR / "manifest.json"
 
@@ -54,6 +55,27 @@ def load_model():
     return model, device, ckpt.get("epoch", "?"), ckpt.get("best_metric", None)
 
 
+@st.cache_resource
+def load_mc_model():
+    """Load the MC-Dropout fine-tuned model. Returns None if the checkpoint
+    doesn't exist (so the UI can hide the MC Dropout option gracefully)."""
+    if not MC_CHECKPOINT_PATH.exists():
+        return None, None, None
+    import segmentation_models_pytorch as smp
+    try:
+        from lunarsite.utils.uncertainty import add_mc_dropout  # type: ignore
+    except ImportError:
+        return None, None, None
+    model = smp.Unet(encoder_name="resnet34", encoder_weights=None, in_channels=3, classes=NC)
+    add_mc_dropout(model, p=0.1)  # Must match training-time dropout_p
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ckpt = torch.load(MC_CHECKPOINT_PATH, map_location=device, weights_only=False)
+    state = ckpt["model_state_dict"] if isinstance(ckpt, dict) and "model_state_dict" in ckpt else ckpt
+    model.load_state_dict(state)
+    model.to(device).eval()
+    return model, device, ckpt.get("best_metric", None)
+
+
 @st.cache_data
 def load_manifest() -> Optional[dict]:
     if MANIFEST_PATH.exists():
@@ -82,6 +104,40 @@ def predict_with_tta(model, x: torch.Tensor, device: torch.device) -> np.ndarray
     probs = probs + torch.flip(F.softmax(model(torch.flip(x, dims=[2, 3])), dim=1), dims=[2, 3])
     probs = probs / 4.0
     return probs.argmax(1).cpu().numpy()[0].astype(np.uint8)
+
+
+@torch.no_grad()
+def predict_with_mc_dropout(
+    model, x: torch.Tensor, device: torch.device, n_samples: int = 20,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Returns (pred_mask, entropy_map, mutual_info_map) — all (H, W).
+
+    - pred_mask: argmax of MC-mean probs, uint8
+    - entropy_map: predictive entropy (total uncertainty), float32 in [0, log(C)]
+    - mutual_info_map: epistemic uncertainty from dropout disagreement, float32
+    """
+    from lunarsite.utils.uncertainty import enable_mc_dropout  # type: ignore
+    model.eval()
+    enable_mc_dropout(model)
+    x = x.to(device)
+    runs = []
+    for _ in range(n_samples):
+        runs.append(F.softmax(model(x), dim=1))
+    stacked = torch.stack(runs).squeeze(1)  # (n, C, H, W)
+    mean_probs = stacked.mean(dim=0)
+    pred = mean_probs.argmax(0).cpu().numpy().astype(np.uint8)
+    H = -(mean_probs * torch.log(mean_probs + 1e-10)).sum(0)
+    per_sample_H = -(stacked * torch.log(stacked + 1e-10)).sum(1)
+    mi = H - per_sample_H.mean(0)
+    return pred, H.cpu().numpy().astype(np.float32), mi.cpu().numpy().astype(np.float32)
+
+
+def uncertainty_heatmap(uncertainty: np.ndarray) -> np.ndarray:
+    """Normalize (H, W) to uint8 RGB heatmap (hot colormap)."""
+    lo, hi = uncertainty.min(), uncertainty.max()
+    norm = (uncertainty - lo) / max(hi - lo, 1e-8)
+    norm = (norm * 255).astype(np.uint8)
+    return cv2.applyColorMap(norm, cv2.COLORMAP_HOT)[..., ::-1]  # BGR → RGB
 
 
 def colorize_mask(mask: np.ndarray) -> np.ndarray:
@@ -371,12 +427,32 @@ st.divider()
 
 # --- Upload box ---
 st.header("Try your own image")
-st.markdown(
-    "Upload any lunar-looking image (synthetic, rover photo, telescope shot). "
-    "The model applies flip TTA during inference. Images are center-cropped to 480×480."
-)
+mc_model, mc_device, mc_best = load_mc_model()
+mc_available = mc_model is not None
+if mc_available:
+    st.markdown(
+        "Upload any lunar-looking image (synthetic, rover photo, telescope shot). "
+        "Choose an inference mode — flip TTA for the fastest/best single prediction, or "
+        "MC Dropout for per-pixel epistemic uncertainty (20 stochastic forward passes). "
+        "Images are center-cropped to 480×480."
+    )
+else:
+    st.markdown(
+        "Upload any lunar-looking image (synthetic, rover photo, telescope shot). "
+        "The model applies flip TTA during inference. Images are center-cropped to 480×480."
+    )
 
 uploaded = st.file_uploader("Upload PNG / JPG", type=["png", "jpg", "jpeg"])
+
+if mc_available:
+    inference_mode = st.radio(
+        "Inference mode",
+        options=["Flip TTA (deterministic)", "MC Dropout (20 samples + uncertainty)"],
+        horizontal=True,
+    )
+else:
+    inference_mode = "Flip TTA (deterministic)"
+
 if uploaded is not None:
     file_bytes = np.frombuffer(uploaded.read(), np.uint8)
     img_bgr = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
@@ -385,19 +461,53 @@ if uploaded is not None:
     else:
         img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
         tensor, img_crop = preprocess(img_rgb)
-        with st.spinner("Running inference with flip TTA..."):
-            mask = predict_with_tta(model, tensor, device)
-        over = overlay(img_crop, mask)
-        coverage = compute_class_coverage(mask)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.image(img_crop, caption="Your input (480×480)", use_container_width=True)
-        with col2:
-            st.image(over, caption="Prediction overlay", use_container_width=True)
+        if inference_mode.startswith("MC Dropout"):
+            with st.spinner("Running 20 stochastic forward passes (MC Dropout)..."):
+                mask, entropy, mi = predict_with_mc_dropout(mc_model, tensor, mc_device, n_samples=20)
+            over = overlay(img_crop, mask)
+            coverage = compute_class_coverage(mask)
+            entropy_rgb = uncertainty_heatmap(entropy)
+            mi_rgb = uncertainty_heatmap(mi)
 
-        st.subheader("Per-class coverage")
-        render_coverage_bars(coverage)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.image(img_crop, caption="Your input (480×480)", use_container_width=True)
+            with col2:
+                st.image(over, caption="MC-mean prediction overlay", use_container_width=True)
+
+            col3, col4 = st.columns(2)
+            with col3:
+                st.image(entropy_rgb,
+                         caption=f"Predictive entropy (total) — mean {float(entropy.mean()):.3f}",
+                         use_container_width=True)
+            with col4:
+                st.image(mi_rgb,
+                         caption=f"Mutual info (epistemic) — mean {float(mi.mean()):.3f}",
+                         use_container_width=True)
+
+            st.caption(
+                "Brighter pixels = higher uncertainty. "
+                "Mutual information isolates epistemic (model) uncertainty and should be highest "
+                "on out-of-distribution inputs or ambiguous class boundaries."
+            )
+
+            st.subheader("Per-class coverage (from MC-mean prediction)")
+            render_coverage_bars(coverage)
+        else:
+            with st.spinner("Running inference with flip TTA..."):
+                mask = predict_with_tta(model, tensor, device)
+            over = overlay(img_crop, mask)
+            coverage = compute_class_coverage(mask)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.image(img_crop, caption="Your input (480×480)", use_container_width=True)
+            with col2:
+                st.image(over, caption="Prediction overlay", use_container_width=True)
+
+            st.subheader("Per-class coverage")
+            render_coverage_bars(coverage)
 
 st.divider()
 
