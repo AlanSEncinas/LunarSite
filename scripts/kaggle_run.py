@@ -101,6 +101,17 @@ KERNELS: dict[str, KernelSpec] = {
         output_dir=REPO_ROOT / "outputs" / "crater_v1_seed1",
         is_private=True,
     ),
+    "crater_v2_finetune_seed1": KernelSpec(
+        slug=f"{KAGGLE_USERNAME}/lunarsite-crater-v2-finetune-seed1",
+        title="LunarSite Crater v2 Finetune Seed1",
+        notebook=REPO_ROOT / "notebooks" / "finetune_crater_southpole_kaggle.ipynb",
+        datasets=[
+            f"{KAGGLE_USERNAME}/lunarsite-checkpoints",
+            f"{KAGGLE_USERNAME}/lunarsite-southpole-finetune",
+        ],
+        output_dir=REPO_ROOT / "outputs" / "crater_v2_finetune_seed1",
+        is_private=True,
+    ),
 }
 
 

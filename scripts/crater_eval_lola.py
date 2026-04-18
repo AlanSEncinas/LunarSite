@@ -52,9 +52,15 @@ def build_crater_unet() -> torch.nn.Module:
 
 def load_checkpoint(model: torch.nn.Module, path: Path, device: torch.device) -> dict:
     ckpt = torch.load(path, map_location=device, weights_only=False)
-    if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
-        model.load_state_dict(ckpt["model_state_dict"])
-        meta = {k: v for k, v in ckpt.items() if k != "model_state_dict" and not isinstance(v, torch.Tensor)}
+    # Stage 2 saved under 'model_state_dict'; Stage 1 (crater notebook) saved under 'model'.
+    if isinstance(ckpt, dict):
+        state_key = "model_state_dict" if "model_state_dict" in ckpt else "model" if "model" in ckpt else None
+        if state_key is None:
+            model.load_state_dict(ckpt)
+            meta = {}
+        else:
+            model.load_state_dict(ckpt[state_key])
+            meta = {k: v for k, v in ckpt.items() if k != state_key and not isinstance(v, torch.Tensor)}
     else:
         model.load_state_dict(ckpt)
         meta = {}
@@ -74,7 +80,7 @@ def normalize_tile(tile: np.ndarray) -> np.ndarray:
 @torch.no_grad()
 def infer_tile(model: torch.nn.Module, tile01: np.ndarray, device: torch.device, tta: bool) -> np.ndarray:
     """Return sigmoid prob map (H, W) in [0, 1]."""
-    x = torch.from_numpy(tile01).unsqueeze(0).unsqueeze(0).to(device)
+    x = torch.from_numpy(np.ascontiguousarray(tile01, dtype=np.float32)).unsqueeze(0).unsqueeze(0).to(device)
     if not tta:
         return torch.sigmoid(model(x)).squeeze().cpu().numpy()
     probs = torch.sigmoid(model(x))
