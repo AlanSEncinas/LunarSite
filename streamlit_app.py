@@ -258,6 +258,93 @@ if manifest and manifest.get("south_pole_examples"):
                  use_container_width=True)
     render_coverage_bars(sp["coverage"])
 
+# --- Stage 1: crater detection ---
+if manifest and manifest.get("stage1"):
+    s1 = manifest["stage1"]
+    st.header("Stage 1 — Crater Detection on LOLA south pole DEM")
+    st.markdown(
+        f"Binary U-Net + ResNet-34 trained on DeepMoon synthetic DEM tiles (Silburt 2019), "
+        f"then **fine-tuned on 334 real LOLA south pole tiles** (118 m/px) with "
+        f"Robbins 2018 crater-ring ground truth ≥3 km. The fine-tune closed a 7× sim-to-real gap "
+        f"(v1 IoU 0.021 → v2 IoU 0.161 on held-out val)."
+    )
+    st.image(str(DEMO_DIR / s1["crater_overlay"]),
+             caption="LOLA south pole DEM hillshade with v2 crater predictions (cyan). "
+                     "608 × 608 km, 80°S–90°S, downsampled for web.",
+             use_container_width=True)
+    m = s1["metrics"]; v = s1["v1_vs_v2"]
+    cA, cB, cC, cD = st.columns(4)
+    cA.metric("v2 IoU",         f"{m['iou']:.3f}", f"{m['iou'] - v['v1_iou']:+.3f} vs v1")
+    cB.metric("v2 Recall",      f"{m['recall']:.3f}", f"{(m['recall'] / v['v1_recall'] - 1) * 100:+.0f}% vs v1")
+    cC.metric("Precision",      f"{m['precision']:.3f}")
+    cD.metric("Threshold",      f"{m['threshold']:.2f}",  "flip TTA")
+    st.caption(
+        "Metrics computed on the full 7600×7600 LOLA south pole DEM vs Robbins 2018 crater rings "
+        "(14,406 craters ≥1 km)."
+    )
+
+    st.divider()
+
+# --- Stage 3: landing site scoring ---
+if manifest and manifest.get("stage3"):
+    s3 = manifest["stage3"]
+    st.header("Stage 3 — XGBoost Landing Site Scorer")
+    st.markdown(
+        f"**{s3['n_cells']:,} grid cells** (1 km each) over 80°S–90°S scored on a 27-feature vector "
+        f"combining LOLA topography, 60 m/px illumination + Earth visibility (Mazarico 2011, "
+        f"PGDA Product 69), and Stage 1 crater predictions. Labels are **rule-based** from NASA's "
+        f"CASSA thresholds (slope ≤5°, illumination ≥33%, Earth visibility ≥50%). XGBoost learns "
+        f"a soft score that generalizes to features the hard rules don't encode."
+    )
+
+    st.subheader("Top-500 scored cells vs NASA Artemis III candidate regions")
+    st.image(str(DEMO_DIR / s3["top_sites_map"]),
+             caption="LOLA south pole hillshade. Color-graded dots are LunarSite's top-500 "
+                     "ranked cells; gold stars are NASA's 9 Artemis III candidates.",
+             use_container_width=True)
+
+    # Artemis overlap table
+    overlap_path = DEMO_DIR / s3.get("artemis_overlap_json", "")
+    if overlap_path.exists():
+        overlap = json.loads(overlap_path.read_text())
+        st.subheader("Artemis III overlap — LunarSite top-N vs 9 NASA candidate regions")
+        mA, mB, mC = st.columns(3)
+        for col, level in zip((mA, mB, mC), overlap["top_n_levels"]):
+            col.metric(
+                f"Top {level['top_n']}",
+                f"{level['regions_matched']}/9 matched",
+                help="regions with >=1 LunarSite top-N cell within 15 km of the published center",
+            )
+        with st.expander("Per-region detail (top 500)"):
+            for lvl in overlap["top_n_levels"]:
+                if lvl["top_n"] == 500:
+                    import pandas as pd
+                    df = pd.DataFrame(lvl["regions"])
+                    df = df.rename(columns={"region": "NASA region",
+                                            "cells_within_15km": "cells in 15 km",
+                                            "closest_km": "closest (km)"})
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+
+    st.subheader("SHAP explainability — which features drive the score?")
+    st.image(str(DEMO_DIR / s3["shap_summary"]),
+             caption="SHAP summary on 5,000 sampled cells. "
+                     "Top 3 features are the 3 CASSA threshold inputs (sanity check). "
+                     "`elevation_std` emerges as #4 — a signal the hard rules don't encode.",
+             use_container_width=True)
+
+    with st.expander("Top 10 cells (direct numeric output)"):
+        import pandas as pd
+        top10 = pd.read_csv(DEMO_DIR / s3["top10_csv"])
+        st.dataframe(top10, use_container_width=True, hide_index=True)
+        st.caption(
+            "All top 10 cells sit at elevations +4.5 to +4.9 km (Mons Mouton massif), "
+            "slopes 2.7–4.6°, illumination 35–40%, Earth visibility 60–85%. "
+            "The Mons Mouton region is the peak-of-eternal-light area NASA independently "
+            "identified as the top Artemis III candidate."
+        )
+
+    st.divider()
+
 # --- Synthetic benchmark ---
 st.header("Synthetic benchmark")
 if manifest and manifest.get("synthetic_example"):

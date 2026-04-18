@@ -182,5 +182,36 @@
         "sky": 0.013003472222222222
       }
     }
-  ]
+  ],
+  "stage3": {
+    "top_sites_map": "stage3/top_sites_map.png",
+    "shap_summary": "stage3/shap_summary.png",
+    "top10_csv": "stage3/top10.csv",
+    "artemis_overlap_json": "stage3/artemis_overlap.json",
+    "n_cells": 315034,
+    "n_suitable": 419,
+    "cassa_thresholds": {
+      "slope_max_deg": 5.0,
+      "illumination_min_pct": 33.0,
+      "earth_visibility_min_pct": 50.0
+    }
+  },
+  "stage1": {
+    "crater_overlay": "stage1/crater_overlay.png",
+    "source": "v2 fine-tuned (best_craterunet_v2_southpole_seed1.pt)",
+    "metrics": {
+      "iou": 0.162,
+      "dice": 0.279,
+      "recall": 0.372,
+      "precision": 0.224,
+      "threshold": 0.25,
+      "tta": "flip"
+    },
+    "v1_vs_v2": {
+      "v1_iou": 0.111,
+      "v1_recall": 0.155,
+      "v2_iou": 0.162,
+      "v2_recall": 0.372
+    }
+  }
 }
