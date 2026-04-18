@@ -39,3 +39,6 @@ Thumbs.db
 
 # Secrets
 .env
+
+# Local-only drafts and marketing copy (case studies, launch posts)
+docs/drafts/
