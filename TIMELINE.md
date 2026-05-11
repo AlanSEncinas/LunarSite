@@ -2,10 +2,10 @@
 
 Working plan with dates. Updated as milestones land or slip.
 
-**Current date:** 2026-04-18 (Saturday, 7am)
-**Current phase:** Layer 2 — Deepening (crater training in flight, Stage 3 scaffolding complete)
+**Current date:** 2026-05-11
+**Current phase:** Project finalized. Layer 3 engineering shipped 2026-04-18 in a single-day sprint. Remaining work is content (blog, case study) and Kaggle UI polish.
 
-**Current pace:** ~2 weeks ahead of original estimate. Target Layer 2 ship pulled from late May → **early-to-mid May**.
+**Final pace:** Layer 2 ship + Layer 3 engineering both shipped 2026-04-18, ~3 weeks ahead of original Layer 2 estimate.
 
 ---
 
@@ -24,31 +24,40 @@ Working plan with dates. Updated as milestones land or slip.
 | 2026-04-18 | Stage 2 **south pole orbital transfer** — ran v1 segmenter zero-shot on 4 real NASA south pole orbital images. Coverage distribution coherent with training. Shipped new "Real south pole orbital imagery" section in Streamlit demo. |
 | 2026-04-18 | **Local CUDA enabled** — switched torch from CPU to CUDA 12.4 on RTX 4070 Laptop GPU. All inference now 9-10× faster locally (crater_eval_lola.py: 11.5 min → 1.1 min). |
 
-## Layer 2 — Deepening (remaining)
+## Layer 2 — Deepening (shipped 2026-04-18)
 
-| Target | Milestone | Status |
-|---|---|---|
-| ~~4/18 today~~ | Crater training (v1 + v2 fine-tune) | **Done 4/18** |
-| ~~4/18 today~~ | PGDA 20 MPP DEM + slope download to D: | **Done 4/18** |
-| ~~4/19 Sun~~ | Stage 1 eval + crater prediction mask | **Done 4/18 (v2)** |
-| 4/18-4/19 | Full Stage 3 feature matrix (20 MPP DEM + slope + illum + Earth vis + v2 crater mask) | Unblocked, ready to run |
-| 4/18-4/19 | Stage 3 XGBoost + SHAP, top-ranked sites, Artemis region overlap check | Next up |
-| 4/20–4/26 | Streamlit v2 (crater overlay on south pole DEM) + v3 (coordinate input → full pipeline + SHAP) | Not started |
-| 4/27–5/3 | End-to-end `run_pipeline.py`, README v2 refresh, TIMELINE-final polish | Not started |
-| ~5/3–5/10 | **Layer 2 ship** — "LunarSite end-to-end works" launch post across LinkedIn / Medium / HN / Kaggle / X | Not started |
+All milestones completed in the single-day Layer 2 sprint:
+- Stage 1 crater detection (v1 + v2 fine-tune on real LOLA south pole)
+- Full Stage 3 feature matrix (315 k cells × 27 features at the time)
+- Stage 3 XGBoost + SHAP scorer with **5/9 Artemis III** region overlap at top-1000
+- End-to-end `run_pipeline.py` orchestrator
+- README v2 refresh with headline metrics
+- Streamlit v2 with crater overlay + Stage 3 landing-site map
+- All committed and pushed to GitHub
 
-**New target Layer 2 ship: early-to-mid May 2026** (~2-3 weeks from today, pulled ~2-3 weeks forward from original estimate).
+## Layer 3 — Engineering (shipped 2026-04-18, same day)
 
-## Layer 3 — Validation & End Game (post-Layer-2)
+Pivoted off the original 4-week dark-terrain plan; collapsed the engineering scope into a single-day sprint by leveraging PGDA + a Zenodo ShadowCam subset rather than waiting on the broken ASU archive UI.
 
-Not scheduled. Separate sprint after Layer 2 ships. Includes:
-- Dark Terrain module (ShadowCam, HORUS denoising, shadow-depth validation)
-- MC Dropout proper implementation on production ResNet
-- arXiv paper on novel contributions (sim-to-real transfer, Stage 1 crater U-Net + LU5M812TGT densified labels, deep ensemble uncertainty, Stage 3 CASSA scorer)
+| Date | Milestone |
+|---|---|
+| 2026-04-18 | **MC Dropout calibrated uncertainty** — fine-tune from `best_resnet34.pt` with 27 Dropout2d(p=0.1) modules. Val mIoU 0.8134, **ECE 0.0072** across 46 M val pixels, **4.7× OOD mutual-info lift** on real moon photos. Streamlit demo gains MC Dropout mode + entropy/MI heatmaps. |
+| 2026-04-18 | **Stage 3 PSR features** — `psr_fraction` and `illumination_min_pct` from PGDA AVGVISIB raster. `illumination_min_pct` lands in top-7 SHAP. **0/100** top ranked cells contain any PSR ground. |
+| 2026-04-18 | **Cross-instrument PSR validation** — downloaded Fassett 2024 ShadowCam Cabeus / LCROSS archive (10.3 GB) from Zenodo. **81–85 %** of ShadowCam's deepest-observed-shadow pixels fall inside PGDA-predicted PSRs. Outputs in `outputs/shadowcam_validation/`. |
+
+## Layer 3 — End Game (deferred, content-only)
+
+Engineering is done. Remaining items are writing + outreach, not code:
+- arXiv paper on novel contributions (calibrated MC Dropout for terrain seg, PSR-aware site scoring, cross-instrument PSR validation against ShadowCam)
 - Commercial outreach (Intuitive Machines / Firefly / Astrobotic / ispace)
 - Community launch (Reddit, r/space, Hacker News)
+- Blog post + case study writeup
 
-Candidate Layer 1.5 idea to evaluate post-Layer-2: **Stage 1 ensemble** (4 more seeds on Kaggle + Colab in parallel for wall-clock speedup) to add epistemic uncertainty to crater predictions the same way Stage 2 has it.
+Explicitly skipped (would add little credibility relative to effort):
+- Shadow-from-depth physics validation
+- HORUS dark-image enhancement validation (needs raw 19 GB ShadowCam cubes)
+- LuSNAR supplementary training data integration
+- DINOv2 encoder revisit
 
 ---
 

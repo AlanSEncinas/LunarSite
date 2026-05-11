@@ -16,13 +16,15 @@ The demo walks the full three-stage pipeline on the real lunar south pole, with 
 
 *LunarSite's top-500 scored cells (color-graded) vs the 9 NASA Artemis III candidate regions (gold stars) on the LOLA south pole DEM hillshade.*
 
-## Headline results (Layer 2)
+## Headline results
 
 | Stage | What it does | Key metric |
 |---|---|---|
-| **Stage 1 — Crater Detection** | U-Net on DEM tiles, fine-tuned on LOLA south pole | **Test IoU 0.162, recall 0.37** (v1→v2 recall +140%) |
-| **Stage 2 — Terrain Segmentation** | U-Net + ResNet-34 on optical imagery | **Test mIoU 0.8456** with flip TTA, transfers to real orbital views |
-| **Stage 3 — XGBoost Site Scorer** | 27 features × 315,034 cells over 80°S–90°S, CASSA pseudo-labels, SHAP | **5/9 Artemis III regions** overlap top-1000 cells |
+| **Stage 1 — Crater Detection** | U-Net on DEM tiles, DeepMoon-pretrained, fine-tuned on real LOLA south pole | **Test IoU 0.162, recall 0.372** (v1→v2 recall **+140 %**) |
+| **Stage 2 — Terrain Segmentation** | U-Net + ResNet-34 on optical imagery | **Test mIoU 0.8456** with flip TTA; 5-seed deep ensemble 0.8445 ± 0.0013 |
+| **Stage 2 — MC Dropout uncertainty** _(Layer 3)_ | 27 Dropout2d modules + 10-epoch fine-tune for calibrated MC sampling | **ECE 0.0072** across 46 M val pixels; **4.7× OOD mutual-info lift** on real moon photos |
+| **Stage 3 — XGBoost Site Scorer** | 29 features × 315,034 cells over 80°S–90°S, PSR-aware, CASSA pseudo-labels, SHAP | **5/9 Artemis III regions** overlap top-1000 cells; **0/100** top cells have any PSR ground |
+| **Cross-instrument PSR validation** _(Layer 3)_ | LunarSite's PGDA-derived PSR detector vs real ShadowCam imagery at Cabeus / LCROSS | **81–85 %** of ShadowCam's deepest-observed-shadow pixels fall inside PGDA-predicted PSRs |
 
 **Artemis III validation (independent NASA analysis):**
 
@@ -65,9 +67,10 @@ Mons Mouton dominates — the peak-of-eternal-light region NASA independently se
 
 ## Ship definition
 
-- **Layer 1 — Foundation** *(shipped 4/11)*: Stage 2 segmenter + sim-to-real + Streamlit v1.
-- **Layer 2 — Deepening** *(shipped 4/18)*: Layer 1 + Stage 1 crater detection + Stage 3 XGBoost scorer + deep ensemble + Streamlit v2 with Artemis overlap.
-- **Layer 3 — Validation & End Game** *(post-ship)*: Dark Terrain module (PSRs via ShadowCam), MC Dropout uncertainty, arXiv paper, commercial outreach, community launch.
+- **Layer 1 — Foundation** *(shipped 4/11/26)*: Stage 2 segmenter + sim-to-real + Streamlit v1.
+- **Layer 2 — Deepening** *(shipped 4/18/26)*: Layer 1 + Stage 1 crater detection + Stage 3 XGBoost scorer + deep ensemble + Streamlit v2 with Artemis overlap.
+- **Layer 3 — Validation** *(engineering shipped 4/18/26)*: MC Dropout calibrated uncertainty + Stage 3 PSR-aware features + cross-instrument validation against ShadowCam at Cabeus / LCROSS.
+- **Layer 3 — End Game** *(deferred)*: arXiv paper, commercial outreach, community launch.
 
 ## Reproducing the results
 
