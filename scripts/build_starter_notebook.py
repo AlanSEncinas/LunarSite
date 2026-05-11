@@ -1,0 +1,305 @@
+"""Generate notebooks/lunarsite_starter_kaggle.ipynb — the public "getting
+started" notebook that satisfies Kaggle's "Publish a notebook" pending
+action on encinas88/lunarsite-weights.
+
+Cells:
+  1. Markdown — title + what this notebook demonstrates
+  2. Code — install SMP, imports, dataset path discovery
+  3. Markdown — Stage 2 production segmenter
+  4. Code — load best_resnet34.pt, define class palette + helpers
+  5. Markdown — flip TTA inference on real moon images
+  6. Code — preprocess + flip-TTA predict + visualize 3 real moon photos
+  7. Markdown — MC Dropout calibrated uncertainty (Layer 3)
+  8. Code — load best_segmenter_mcdropout.pt, run 20 MC samples, show
+            mean prediction + entropy + mutual info
+  9. Markdown — next steps + links
+"""
+
+from __future__ import annotations
+import json
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+OUT = REPO_ROOT / "notebooks" / "lunarsite_starter_kaggle.ipynb"
+
+
+def md(*lines: str) -> dict:
+    return {"cell_type": "markdown", "metadata": {}, "source": list(lines)}
+
+
+def code(*lines: str) -> dict:
+    return {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": list(lines),
+    }
+
+
+cells = []
+
+# ---------- Cell 1: title ----------
+cells.append(md(
+    "# LunarSite — Getting Started\n",
+    "\n",
+    "**Project:** [LunarSite on GitHub](https://github.com/AlanSEncinas/LunarSite) · "
+    "[Live demo](https://lunarsite.streamlit.app)\n",
+    "\n",
+    "End-to-end ML pipeline for lunar south pole landing site selection. This "
+    "notebook demonstrates the **Stage 2 terrain segmenter** (production checkpoint "
+    "and the MC Dropout calibrated-uncertainty variant) on real moon imagery — the "
+    "fastest way to see what the model does without cloning the repo.\n",
+    "\n",
+    "## What you'll see\n",
+    "1. Production U-Net + ResNet-34 segmenter (test mIoU **0.8456** with flip TTA) "
+    "running on real lunar photographs.\n",
+    "2. MC Dropout variant (val mIoU 0.8134, **ECE 0.0072** across 46M pixels) "
+    "producing per-pixel epistemic uncertainty — entropy + mutual information. "
+    "On out-of-distribution real-moon photos, mutual info is **4.7× higher** "
+    "than on the synthetic training distribution.\n",
+    "\n",
+    "Datasets attached: `encinas88/lunarsite-weights` (model checkpoints) and "
+    "`romainpessia/artificial-lunar-rocky-landscape-dataset` (which also contains "
+    "the 72 real moon photographs we'll predict on)."
+))
+
+# ---------- Cell 2: setup ----------
+cells.append(code(
+    "!pip install -q segmentation_models_pytorch\n",
+    "\n",
+    "import os\n",
+    "from pathlib import Path\n",
+    "import numpy as np\n",
+    "import torch\n",
+    "import torch.nn as nn\n",
+    "import torch.nn.functional as F\n",
+    "import segmentation_models_pytorch as smp\n",
+    "import matplotlib.pyplot as plt\n",
+    "import cv2\n",
+    "from PIL import Image\n",
+    "\n",
+    "# Kaggle's dataset mount points vary by version. Discover paths dynamically.\n",
+    "def find_first_with(filename, root='/kaggle/input'):\n",
+    "    \"\"\"Walk /kaggle/input and return the directory containing `filename`.\"\"\"\n",
+    "    for dirpath, _dirs, files in os.walk(root):\n",
+    "        if filename in files:\n",
+    "            return Path(dirpath)\n",
+    "    raise FileNotFoundError(f'{filename} not found anywhere under {root}')\n",
+    "\n",
+    "WEIGHTS_DIR = find_first_with('best_resnet34.pt')\n",
+    "IMAGES_DIR = find_first_with('g_PCAM1.png').parent  # the parent of /real_moon_images\n",
+    "\n",
+    "DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'\n",
+    "print(f'Device:           {DEVICE}')\n",
+    "print(f'Weights mount:    {WEIGHTS_DIR}')\n",
+    "print(f'Images mount:     {IMAGES_DIR}')\n",
+    "print(f'Weights files:    {sorted(p.name for p in WEIGHTS_DIR.glob(\"*.pt\"))}')\n",
+    "print(f'Real moon images: {len(list((IMAGES_DIR / \"real_moon_images\").glob(\"*.png\")))} files')"
+))
+
+# ---------- Cell 3: Stage 2 prod model ----------
+cells.append(md(
+    "## Stage 2 — Production terrain segmenter\n",
+    "\n",
+    "U-Net + ResNet-34 encoder, 4 classes: `background`, `small_rocks`, `large_rocks`, "
+    "`sky`. Trained exclusively on 9,766 synthetic Unreal Engine lunar scenes; below "
+    "we demonstrate zero-shot transfer to real moon photographs."
+))
+
+# ---------- Cell 4: load model + helpers ----------
+cells.append(code(
+    "NC = 4\n",
+    "CLASS_NAMES = ['background', 'small_rocks', 'large_rocks', 'sky']\n",
+    "CLASS_COLORS = np.array(\n",
+    "    [[0, 0, 0], [255, 165, 0], [255, 0, 0], [135, 206, 235]],\n",
+    "    dtype=np.uint8,\n",
+    ")\n",
+    "INPUT_SIZE = 480\n",
+    "\n",
+    "\n",
+    "def add_mc_dropout(model, p=0.1):\n",
+    "    \"\"\"Inject Dropout2d after every ReLU (matches the LunarSite training-time setup).\"\"\"\n",
+    "    for name, child in model.named_children():\n",
+    "        if isinstance(child, nn.ReLU):\n",
+    "            setattr(model, name, nn.Sequential(nn.ReLU(inplace=True), nn.Dropout2d(p=p)))\n",
+    "        else:\n",
+    "            add_mc_dropout(child, p)\n",
+    "\n",
+    "\n",
+    "def load_segmenter(weight_path, *, mc_dropout_p=None):\n",
+    "    \"\"\"Load a 4-class lunar terrain segmenter. Pass mc_dropout_p to inject dropout\n",
+    "    for the MC variant (must match the p the checkpoint was trained with).\"\"\"\n",
+    "    model = smp.Unet('resnet34', encoder_weights=None, in_channels=3, classes=NC)\n",
+    "    if mc_dropout_p is not None:\n",
+    "        add_mc_dropout(model, p=mc_dropout_p)\n",
+    "    ckpt = torch.load(weight_path, map_location=DEVICE, weights_only=False)\n",
+    "    state = ckpt.get('model_state_dict') or ckpt.get('model')\n",
+    "    model.load_state_dict(state)\n",
+    "    return model.to(DEVICE).eval()\n",
+    "\n",
+    "\n",
+    "def preprocess(img_path, size=INPUT_SIZE):\n",
+    "    img = np.array(Image.open(img_path).convert('RGB'))\n",
+    "    h, w = img.shape[:2]\n",
+    "    side = min(h, w)\n",
+    "    y0, x0 = (h - side) // 2, (w - side) // 2\n",
+    "    cropped = img[y0:y0 + side, x0:x0 + side]\n",
+    "    resized = cv2.resize(cropped, (size, size), interpolation=cv2.INTER_LINEAR)\n",
+    "    tensor = torch.from_numpy(\n",
+    "        resized.transpose(2, 0, 1).astype(np.float32) / 255.0\n",
+    "    ).unsqueeze(0).to(DEVICE)\n",
+    "    return tensor, resized\n",
+    "\n",
+    "\n",
+    "def colorize(mask):\n",
+    "    out = np.zeros((*mask.shape, 3), dtype=np.uint8)\n",
+    "    for c in range(NC):\n",
+    "        out[mask == c] = CLASS_COLORS[c]\n",
+    "    return out\n",
+    "\n",
+    "\n",
+    "segmenter = load_segmenter(WEIGHTS_DIR / 'best_resnet34.pt')\n",
+    "print(f'Loaded production segmenter ({sum(p.numel() for p in segmenter.parameters()):,} params)')"
+))
+
+# ---------- Cell 5: TTA inference markdown ----------
+cells.append(md(
+    "## Flip-TTA inference on real moon photographs\n",
+    "\n",
+    "The model was trained only on synthetic data — here it predicts on three real "
+    "moon photos from the same source dataset. Inference averages predictions across "
+    "4 flips (identity + horizontal + vertical + both) for robustness."
+))
+
+# ---------- Cell 6: TTA inference ----------
+cells.append(code(
+    "@torch.no_grad()\n",
+    "def predict_with_tta(model, x):\n",
+    "    probs = F.softmax(model(x), dim=1)\n",
+    "    for dims in ([3], [2], [2, 3]):\n",
+    "        probs = probs + torch.flip(F.softmax(model(torch.flip(x, dims=dims)), dim=1), dims=dims)\n",
+    "    return (probs / 4).argmax(1)[0].cpu().numpy().astype(np.uint8)\n",
+    "\n",
+    "\n",
+    "real_imgs = sorted((IMAGES_DIR / 'real_moon_images').glob('*.png'))[:3]\n",
+    "fig, axes = plt.subplots(len(real_imgs), 2, figsize=(11, 5 * len(real_imgs)))\n",
+    "for i, img_path in enumerate(real_imgs):\n",
+    "    x, rgb = preprocess(img_path)\n",
+    "    mask = predict_with_tta(segmenter, x)\n",
+    "    overlay = (0.5 * rgb + 0.5 * colorize(mask)).astype(np.uint8)\n",
+    "    axes[i, 0].imshow(rgb)\n",
+    "    axes[i, 0].axis('off')\n",
+    "    axes[i, 0].set_title(f'Input: {img_path.name}')\n",
+    "    axes[i, 1].imshow(overlay)\n",
+    "    axes[i, 1].axis('off')\n",
+    "    axes[i, 1].set_title('Prediction overlay  (orange=small rocks, red=large rocks, blue=sky)')\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+))
+
+# ---------- Cell 7: MC Dropout markdown ----------
+cells.append(md(
+    "## MC Dropout — calibrated epistemic uncertainty (Layer 3)\n",
+    "\n",
+    "The `best_segmenter_mcdropout.pt` checkpoint was fine-tuned with 27 `Dropout2d(p=0.1)` "
+    "modules injected after every ReLU. Training-time dropout makes the model's confidence "
+    "well-calibrated: **across 46 M validation pixels, when the model predicts 99 % "
+    "confidence it's right 99.3 % of the time (ECE = 0.0072).**\n",
+    "\n",
+    "More importantly for landing-site safety: when shown real moon photos the model "
+    "wasn't trained on, **mutual information jumps 4.7× vs in-domain validation** "
+    "(0.192 vs 0.041). The model can flag *I don't know* via measurable uncertainty "
+    "instead of being confidently wrong on out-of-distribution inputs."
+))
+
+# ---------- Cell 8: MC Dropout inference ----------
+cells.append(code(
+    "def enable_mc_dropout(model):\n",
+    "    \"\"\"Switch only the dropout modules back to training mode for MC sampling.\"\"\"\n",
+    "    for m in model.modules():\n",
+    "        if isinstance(m, nn.Dropout2d):\n",
+    "            m.train()\n",
+    "\n",
+    "\n",
+    "@torch.no_grad()\n",
+    "def mc_predict(model, x, n_samples=20):\n",
+    "    model.eval()\n",
+    "    enable_mc_dropout(model)\n",
+    "    samples = torch.stack([F.softmax(model(x), dim=1) for _ in range(n_samples)]).squeeze(1)\n",
+    "    mean_probs = samples.mean(0)\n",
+    "    pred = mean_probs.argmax(0).cpu().numpy().astype(np.uint8)\n",
+    "    entropy = -(mean_probs * torch.log(mean_probs + 1e-10)).sum(0)\n",
+    "    per_sample_H = -(samples * torch.log(samples + 1e-10)).sum(1)\n",
+    "    mi = entropy - per_sample_H.mean(0)\n",
+    "    return pred, entropy.cpu().numpy(), mi.cpu().numpy()\n",
+    "\n",
+    "\n",
+    "mc_segmenter = load_segmenter(\n",
+    "    WEIGHTS_DIR / 'best_segmenter_mcdropout.pt',\n",
+    "    mc_dropout_p=0.1,  # must match training-time p\n",
+    ")\n",
+    "x, rgb = preprocess(real_imgs[0])\n",
+    "pred, entropy, mi = mc_predict(mc_segmenter, x, n_samples=20)\n",
+    "\n",
+    "fig, axes = plt.subplots(1, 4, figsize=(22, 5))\n",
+    "axes[0].imshow(rgb); axes[0].axis('off'); axes[0].set_title('Input')\n",
+    "axes[1].imshow((0.5 * rgb + 0.5 * colorize(pred)).astype(np.uint8))\n",
+    "axes[1].axis('off'); axes[1].set_title('MC-mean prediction')\n",
+    "axes[2].imshow(entropy, cmap='hot')\n",
+    "axes[2].axis('off'); axes[2].set_title(f'Predictive entropy (total)\\nmean = {entropy.mean():.3f}')\n",
+    "axes[3].imshow(mi, cmap='hot')\n",
+    "axes[3].axis('off'); axes[3].set_title(f'Mutual info (epistemic)\\nmean = {mi.mean():.3f}')\n",
+    "plt.tight_layout()\n",
+    "plt.show()\n",
+    "\n",
+    "print(\"\\nMutual information is the operationally useful number:\")\n",
+    "print(\"  In-domain val (synthetic):  ~0.041 mean MI\")\n",
+    "print(f\"  Real moon (this image):     {mi.mean():.3f} mean MI\")\n",
+    "print(\"  Higher MI on OOD inputs = the model knows when it's looking at something unfamiliar.\")"
+))
+
+# ---------- Cell 9: next steps ----------
+cells.append(md(
+    "## Next steps\n",
+    "\n",
+    "**The full LunarSite pipeline** does more than terrain segmentation — Stage 1 "
+    "detects craters on the LOLA south pole DEM, and Stage 3 ranks 315,034 candidate "
+    "1 km landing cells across 80°S–90°S with PSR-aware features and SHAP explainability "
+    "(5/9 NASA Artemis III candidate regions overlap top-1000 cells).\n",
+    "\n",
+    "- **Live interactive demo:** [lunarsite.streamlit.app](https://lunarsite.streamlit.app)\n",
+    "- **Source code:** [github.com/AlanSEncinas/LunarSite](https://github.com/AlanSEncinas/LunarSite)\n",
+    "- **Companion training dataset (Stage 1 fine-tune):** "
+    "[encinas88/lunarsite-southpole-finetune](https://www.kaggle.com/datasets/encinas88/lunarsite-southpole-finetune)\n",
+    "- **Author site:** [alanscottencinas.com](https://alanscottencinas.com)\n",
+    "\n",
+    "**Citation:**\n",
+    "\n",
+    "```\n",
+    "Encinas, A. (2026). LunarSite — end-to-end ML pipeline for lunar south pole\n",
+    "landing site selection. https://github.com/AlanSEncinas/LunarSite\n",
+    "```"
+))
+
+
+notebook = {
+    "cells": cells,
+    "metadata": {
+        "kernelspec": {
+            "display_name": "Python 3",
+            "language": "python",
+            "name": "python3",
+        },
+        "language_info": {
+            "name": "python",
+            "version": "3.11",
+        },
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5,
+}
+
+OUT.parent.mkdir(parents=True, exist_ok=True)
+OUT.write_text(json.dumps(notebook, indent=1), encoding="utf-8")
+print(f"Wrote {OUT}  ({len(cells)} cells)")

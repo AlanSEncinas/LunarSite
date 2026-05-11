@@ -64,6 +64,22 @@ KERNELS: dict[str, KernelSpec] = {
         output_dir=REPO_ROOT / "outputs" / "v1_vs_v2_eval",
         is_private=False,
     ),
+    "starter": KernelSpec(
+        slug=f"{KAGGLE_USERNAME}/lunarsite-getting-started",
+        title="LunarSite Getting Started",
+        notebook=REPO_ROOT / "notebooks" / "lunarsite_starter_kaggle.ipynb",
+        datasets=[
+            f"{KAGGLE_USERNAME}/lunarsite-weights",
+            "romainpessia/artificial-lunar-rocky-landscape-dataset",
+        ],
+        output_dir=REPO_ROOT / "outputs" / "starter",
+        is_private=False,        # public — this is the public-facing example
+        # Inference-only on a handful of 480x480 images. CPU runs in ~10 s
+        # total and dodges the Kaggle P100 sm_60 / new-torch incompatibility
+        # that pinning torch would otherwise require.
+        enable_gpu=False,
+        accelerator="None",
+    ),
     # Seeds 2-3 live at dashed slugs (Kaggle inserted dash from "Seed 2" title).
     # Seeds 4-5 use no-space title so slug matches (avoids "Notebook not found" bug).
     "ensemble_seed2": KernelSpec(
