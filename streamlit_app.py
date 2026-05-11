@@ -179,6 +179,16 @@ st.markdown("### End-to-end ML pipeline for lunar south pole landing site select
 
 st.markdown(
     """
+    **Why this exists:** The lunar south pole is the highest-stakes landing region in modern
+    spaceflight — Intuitive Machines IM-2 crashed there in March 2025 under conditions that
+    broke classical geometric algorithms. LunarSite is a pre-mission analysis tool that uses
+    ML to screen candidate landing cells across 80°S–90°S, filling the gap between NASA's
+    flight-time SPLICE system and academic terrain-analysis research.
+    """
+)
+
+st.markdown(
+    """
     The full [LunarSite](https://github.com/AlanSEncinas/LunarSite) pipeline running on the lunar south pole.
     Three stages working together:
 
