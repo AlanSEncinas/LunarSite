@@ -175,15 +175,22 @@ st.set_page_config(
 )
 
 st.title("LunarSite")
-st.markdown("### Lunar terrain semantic segmentation — sim-to-real transfer from synthetic training data")
+st.markdown("### End-to-end ML pipeline for lunar south pole landing site selection")
 
 st.markdown(
     """
-    Stage 2 of the [LunarSite](https://github.com/AlanSEncinas/LunarSite) ML pipeline for lunar south pole
-    landing site selection. This model segments lunar surface imagery into four classes —
-    **background**, **small rocks**, **large rocks**, **sky** — and was trained exclusively on
-    9,766 synthetic Unreal Engine lunar scenes. The examples below show how it transfers to
-    real lunar photography with **zero domain adaptation**.
+    The full [LunarSite](https://github.com/AlanSEncinas/LunarSite) pipeline running on the lunar south pole.
+    Three stages working together:
+
+    - **Stage 2 — Terrain Segmentation:** U-Net + ResNet-34 segments lunar imagery into four classes
+      (**background**, **small rocks**, **large rocks**, **sky**), trained exclusively on 9,766 synthetic
+      Unreal Engine scenes. See how it transfers to real moon photography below with **zero domain
+      adaptation**, and try MC Dropout calibrated uncertainty on your own image at the bottom.
+    - **Stage 1 — Crater Detection:** binary U-Net on the LOLA south pole DEM, fine-tuned on real
+      Robbins crater rims for the production model.
+    - **Stage 3 — XGBoost Site Scorer:** ranks 315,034 candidate 1 km landing cells over 80°S–90°S
+      using 29 features (LOLA topography + PGDA illumination + crater density + PSR exposure), with
+      SHAP explainability and validation against NASA's 9 Artemis III candidate regions.
     """
 )
 
@@ -215,7 +222,7 @@ with st.expander("Model details and test set performance", expanded=False):
             st.text("Test mIoU: 0.8456")
         if manifest and "ensemble" in manifest:
             ens = manifest["ensemble"]
-            st.markdown("**Deep ensemble (Layer 2)**")
+            st.markdown("**Deep ensemble (5 seeds)**")
             st.text(
                 f"{ens['n_members']} members | "
                 f"mean test TTA mIoU: {ens['test_tta_mean']:.4f} | "
@@ -546,9 +553,11 @@ st.divider()
 st.markdown(
     """
     ---
-    **LunarSite** is a three-stage ML pipeline for lunar south pole landing site selection.
-    This demo shows **Stage 2** (terrain segmentation). The full pipeline adds **Stage 1**
-    (crater detection) and **Stage 3** (XGBoost site scorer with SHAP explainability).
+    **LunarSite** is an end-to-end ML pipeline for lunar south pole landing site selection.
+    This demo walks all three stages: **Stage 2** terrain segmentation (with MC Dropout calibrated
+    uncertainty), **Stage 1** crater detection on the LOLA south pole DEM, and **Stage 3** XGBoost
+    site scoring with PSR-aware features and SHAP explainability. Top-ranked cells overlap NASA's
+    independently selected Artemis III candidate regions.
 
     Built by [Alan Scott Encinas](https://github.com/AlanSEncinas) · [Source on GitHub](https://github.com/AlanSEncinas/LunarSite) · MIT License
     """
