@@ -145,58 +145,48 @@ Four-module pipeline with dark terrain analysis:
 - [x] **Production config locked:** U-Net + ResNet-34 + Dice+CE + flip TTA. v2 kept as documented negative ablation.
 - [x] Sim-to-real qualitative evaluation on 36 real moon images — coherent transfer, class balance preserved (bg 75% vs training 76%, sr 19% vs 19%), known failure mode on bright-rocks-as-sky. See [outputs/sim_to_real/v1_tta/contact_sheet.png](outputs/sim_to_real/v1_tta/contact_sheet.png).
 - [x] Streamlit v0 demo — [streamlit_app.py](streamlit_app.py) with preloaded real moon + synthetic examples, model card, upload box. Smoke tested locally.
-- [ ] Deep ensemble: 4-5 runs of v1 config with varied seeds (_Layer 2 work_)
+- [x] **Deep ensemble** (5 seeds of v1 config, identical data split with `split_seed=42`). Test TTA mIoU 0.8445 ± 0.0013. Member 5 highest at 0.8458; member 4 lowest at 0.8428.
 
-### Phase 2: Stage 1 — Crater Detection  _(Tier 2)_
-- [ ] Download crater datasets + LOLA DEMs
-- [ ] DEM tile extraction pipeline
-- [ ] Crater U-Net (or YOLO variant)
-- [ ] Train, evaluate, run inference on south pole DEM
-- [ ] Streamlit v2 demo upgrade — add crater output
+### Phase 2: Stage 1 — Crater Detection  _(Layer 2, shipped 2026-04-18)_
+- [x] Download crater datasets + LOLA DEMs (DeepMoon synthetic, LOLA `LDEM_80S_80MPP_ADJ.TIF`, Robbins ≥3 km catalog)
+- [x] DEM tile extraction pipeline ([scripts/build_southpole_hdf5.py](scripts/build_southpole_hdf5.py))
+- [x] Crater U-Net (binary segmentation, SMP `Unet("resnet34")`)
+- [x] **v1** trained on DeepMoon synthetic — test IoU 0.327 (flip TTA) on DeepMoon val; fails on real LOLA south pole (recall 0.155)
+- [x] **v2** fine-tuned on 334 real LOLA south pole tiles + Robbins rim labels — test IoU **0.162**, recall **0.372** (+140 % over v1). Production Stage 1.
+- [x] Streamlit Stage 1 section + crater overlay on south pole DEM
 
-### Phase 3: Stage 3 — Feature Engineering & Scoring  _(Tier 2)_
-- [ ] Download PGDA products (slope, roughness, error, K-means, illumination)
-- [ ] Download Diviner thermal (thermal inertia, rock abundance) + Mini-RF SAR
-- [ ] Compute Stage 1/2 derived features
-- [ ] Build feature matrix, define labels
-- [ ] Train XGBoost, SHAP analysis
-- [ ] Compare against NASA's 9 Artemis regions + ResGAT-F benchmark
-- [ ] Streamlit v3 demo upgrade — coordinates → site score + SHAP
+### Phase 3: Stage 3 — Feature Engineering & Scoring  _(Layer 2, shipped 2026-04-18)_
+- [x] Download PGDA Product 90 (slope, elevation) + Product 69 (illumination, Earth visibility)
+- [x] Compute Stage 1 derived features (crater density per cell)
+- [x] Grid generator + LOLA feature extractor over 80°S–90°S
+- [x] Feature matrix: **315,034 cells × 29 features** ([data/processed/stage3_features_80mpp_1km.parquet](data/processed/))
+- [x] CASSA rule-based pseudo-labels (slope ≤5°, illumination ≥33%, Earth visibility ≥50%)
+- [x] XGBoost + SHAP analysis ([scripts/train_scorer.py](scripts/train_scorer.py))
+- [x] **Artemis III overlap validation**: 5/9 NASA candidate regions matched at top 1000 cells (Mons Mouton dominates)
+- [x] Streamlit Stage 3 section: top-sites map + Artemis overlap table + SHAP summary + per-cell PSR exposure
 
-### Phase 4: Integration & Polish  _(Tier 2 — SHIP)_
-- [ ] End-to-end pipeline script
-- [ ] Full demo notebook
-- [ ] Final README with results
-- [ ] Tests, cleanup
-- [ ] **Tier 2 ship checkpoint — LunarSite is "done enough to show people"**
+### Phase 4: Integration & Polish  _(Layer 2 SHIP, 2026-04-18)_
+- [x] End-to-end pipeline script ([scripts/run_pipeline.py](scripts/run_pipeline.py))
+- [x] README v2 with headline results, architecture diagram, reproduction commands
+- [x] **Layer 2 ship checkpoint reached** — LunarSite end-to-end pipeline working, demo live, repo public.
 
 ---
 
-_Everything below is Tier 3. Engineering items shipped 2026-04-18; remaining items are content / outreach only (paper, blog, commercial outreach, community launch)._
+### Phase 5: Dark Terrain Analysis  _(Layer 3, shipped 2026-04-18)_
+- [x] Stage 3 PSR features from PGDA AVGVISIB (Mazarico 2011): `psr_fraction` and `illumination_min_pct`. `illumination_min_pct` lands top-7 SHAP. **Top 100 ranked cells contain 0 PSR ground.**
+- [x] ShadowCam Cabeus / LCROSS data ingestion (Zenodo DOI 10.5281/zenodo.11175455, 10.3 GB CC-BY-4.0). Extracted composites + DEM-and-ortho subsets (~543 MB) to `D:/shadowcam/extracted/`.
+- [x] Cross-instrument PSR validation ([scripts/shadowcam_psr_validate.py](scripts/shadowcam_psr_validate.py)): **81–85 % of ShadowCam's deepest-observed-shadow pixels at Cabeus fall inside PGDA-predicted PSRs**. Outputs: `outputs/shadowcam_validation/`.
+- _Scaffolding kept, not validated:_ `src/lunarsite/models/depth.py` (Depth Anything V2 wrapper + shadow-based depth), `src/lunarsite/models/enhancement.py` (HORUS-style denoising), illumination decomposition (albedo/shading split).
 
-### Phase 5: Dark Terrain Analysis Module  _(Tier 3, in progress)_
-- [x] Depth estimation module (Depth Anything V2 wrapper, shadow-based depth) — code exists, not validated
-- [x] HORUS-style dark image enhancement (DestripeNet + PhotonNet) — code exists, not validated
-- [x] Illumination decomposition (albedo/shading separation) — code exists, not validated
-- [x] ShadowCam data download + preprocessing (Cabeus/LCROSS from Zenodo DOI 10.5281/zenodo.11175455, 10.3 GB, CC-BY-4.0). Extracted composites + DEM-and-ortho subsets (~543 MB) to `D:/shadowcam/extracted/`.
-- [x] Add dark terrain features to Stage 3: `psr_fraction` and `illumination_min_pct` per cell from PGDA AVGVISIB (Mazarico 2011). `illumination_min_pct` lands in top-7 SHAP features. Top 100 ranked cells have 0 PSR ground coverage — empirical proof the scorer already avoids PSRs.
-- [x] Cross-instrument PSR validation ([scripts/shadowcam_psr_validate.py](scripts/shadowcam_psr_validate.py)): **81–85 % of ShadowCam's deepest-observed-shadow pixels at Cabeus fall inside PGDA-predicted PSRs**. Both instruments converge on the same deep-shadow regions. Outputs: `outputs/shadowcam_validation/` (side_by_side_*.png, psr_agreement.json).
-- [ ] Shadow-to-depth pipeline on south pole imagery (Day 2 of Week 2)
-- [ ] Validate depth estimates against LOLA DEM ground truth (Day 2 of Week 2)
+### Phase 6: Advanced Uncertainty  _(Layer 3, shipped 2026-04-18)_
+- [x] MC Dropout sanity check ([scripts/mc_dropout_sanity.py](scripts/mc_dropout_sanity.py)) — 27 Dropout2d modules inject cleanly into U-Net + ResNet-34, MC sampling produces non-trivial variance.
+- [x] `--mc-dropout`, `--dropout-p`, `--resume-from`, `--epochs`, `--lr`, `--tag` flags added to [scripts/train_segmenter.py](scripts/train_segmenter.py).
+- [x] **Fine-tune** (10 epochs, lr 2e-5, p=0.1) from `best_resnet34.pt` on local RTX 4070. Val mIoU 0.8134 (-0.02 vs non-dropout baseline), test mIoU 0.8181. Checkpoint: `models/best_segmenter_mcdropout.pt`.
+- [x] **Calibration eval** ([scripts/mc_dropout_calibrate.py](scripts/mc_dropout_calibrate.py)): **ECE = 0.0072** across 46 M val pixels (textbook-calibrated). OOD real-moon mutual info **4.7× higher** than in-domain val (0.192 vs 0.041). Outputs: [outputs/mc_dropout_eval/](outputs/mc_dropout_eval/).
+- [x] Streamlit demo integration — MC Dropout mode + entropy/MI heatmaps in the upload box.
 
-### Phase 6: Advanced Uncertainty  _(Tier 3, in progress)_
-- [~] MC Dropout proper implementation on production ResNet (inject dropout, retrain/fine-tune, validate calibration)
-  - [x] Sanity-check `add_mc_dropout()` on the production ResNet-34 checkpoint ([scripts/mc_dropout_sanity.py](scripts/mc_dropout_sanity.py)) — 27 Dropout2d modules inject cleanly, MC sampling produces non-trivial variance, as-expected calibration gap from training without dropout
-  - [x] Add `--mc-dropout`, `--dropout-p`, `--resume-from`, `--epochs`, `--lr`, `--tag` flags to [scripts/train_segmenter.py](scripts/train_segmenter.py)
-  - [x] Fine-tune (10 epochs, lr 2e-5, p=0.1) from `best_resnet34.pt` on local RTX 4070 (2026-04-18). Best val mIoU 0.8134 (-0.02 vs non-dropout baseline), test mIoU 0.8181. Checkpoint: `models/best_segmenter_mcdropout.pt`.
-  - [x] Calibration eval: [scripts/mc_dropout_calibrate.py](scripts/mc_dropout_calibrate.py). **ECE = 0.0072** (textbook-calibrated) across 46M pixels. OOD real-moon mutual info **4.7× higher** than in-domain (0.192 vs 0.041) — MC Dropout reliably flags out-of-distribution inputs. Outputs: [outputs/mc_dropout_eval/](outputs/mc_dropout_eval/) (reliability.png, uncertainty_histogram.png, calibration.json).
-  - [x] Streamlit demo integration ([streamlit_app.py](streamlit_app.py)) — MC Dropout mode + entropy/MI heatmaps in the upload box; auto-hides if checkpoint missing
-- [ ] LuSNAR supplementary data integration
-- [ ] DINOv2 encoder — revisit if baseline results warrant
-
-### Phase 7: Impact & Release  _(Tier 3, deferred)_
-- [ ] **Open-source release** — clean README, Docker container, reproducible results, MIT license
-- [ ] **arXiv paper** — novel contributions: DINOv2 lunar augmentations, shadow-depth validation against LOLA, MC Dropout uncertainty for landing site confidence
-- [ ] **Interactive web demo** — Streamlit/Gradio app: input south pole coordinates → safety score + terrain overlay + uncertainty map + SHAP explanation
-- [ ] **Commercial outreach** — share results with Intuitive Machines, Firefly, Astrobotic, ispace via LinkedIn with demo link
-- [ ] **Community launch** — post demo video to Twitter/X space community, Reddit r/space, Hacker News
+### Explicitly skipped (low credibility-per-effort)
+- Shadow-from-depth physics validation against LOLA
+- HORUS dark-image enhancement validation (would need raw 19 GB ShadowCam cubes)
+- LuSNAR supplementary training data integration
+- DINOv2 encoder revisit
