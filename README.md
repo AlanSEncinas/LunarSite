@@ -69,8 +69,7 @@ Mons Mouton dominates — the peak-of-eternal-light region NASA independently se
 
 - **Layer 1 — Foundation** *(shipped 4/11/26)*: Stage 2 segmenter + sim-to-real + Streamlit v1.
 - **Layer 2 — Deepening** *(shipped 4/18/26)*: Layer 1 + Stage 1 crater detection + Stage 3 XGBoost scorer + deep ensemble + Streamlit v2 with Artemis overlap.
-- **Layer 3 — Validation** *(engineering shipped 4/18/26)*: MC Dropout calibrated uncertainty + Stage 3 PSR-aware features + cross-instrument validation against ShadowCam at Cabeus / LCROSS.
-- **Layer 3 — End Game** *(deferred)*: arXiv paper, commercial outreach, community launch.
+- **Layer 3 — Validation** *(shipped 4/18/26)*: MC Dropout calibrated uncertainty + Stage 3 PSR-aware features + cross-instrument validation against ShadowCam at Cabeus / LCROSS.
 
 ## Reproducing the results
 
@@ -218,17 +217,11 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 - [x] End-to-end `run_pipeline.py`
 - [x] Streamlit v2 with all three stages
 
-### Layer 3 — Validation *(engineering shipped 4/18/26)*
+### Layer 3 — Validation *(shipped 4/18/26)*
 - [x] MC Dropout calibrated uncertainty on production ResNet (val mIoU 0.8134, ECE 0.0072 on 46 M val pixels, 4.7× OOD mutual-info lift on real moon photos)
 - [x] Stage 3 PSR-aware features (`psr_fraction`, `illumination_min_pct` from PGDA — 0/100 top cells contain any PSR ground)
 - [x] Cross-instrument PSR validation against ShadowCam at Cabeus / LCROSS (81–85 % agreement on deepest-shadow pixels)
 - [x] Streamlit demo MC Dropout mode + PSR exposure section
-
-### Layer 3 — End Game *(deferred, content-only)*
-- [ ] arXiv paper on novel contributions (calibrated MC Dropout + PSR-aware site scoring + cross-instrument PSR validation)
-- [ ] Commercial outreach to lunar lander companies
-- [ ] Community launch (Reddit r/space, Hacker News)
-- [ ] Blog post + case study writeup
 
 **Explicitly skipped** (low credibility-per-effort):
 - Shadow-from-depth physics validation
