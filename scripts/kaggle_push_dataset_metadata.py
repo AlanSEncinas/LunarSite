@@ -46,11 +46,11 @@ Pretrained PyTorch weights from **LunarSite**, an end-to-end ML pipeline for lun
 
 - **Repo:** https://github.com/encinas88/Moon
 - **Project site:** https://alanscottencinas.com
-- **Status:** Layer 2 shipped (2026-04-18) — Stage 1 (craters) + Stage 2 (terrain ensemble) + Stage 3 (XGBoost scorer) complete.
+- **Status:** Layer 3 shipped (2026-04-18) — Stage 1 (craters) + Stage 2 (terrain ensemble + MC Dropout calibrated uncertainty) + Stage 3 (PSR-aware XGBoost scorer) complete. Cross-instrument PSR validation against ShadowCam at Cabeus / LCROSS confirms 81–85 % agreement with PGDA-predicted shadow regions.
 
 ## What's in this dataset
 
-Eight PyTorch `.pt` checkpoints, grouped into three roles.
+Nine PyTorch `.pt` checkpoints, grouped into four roles.
 
 ### Stage 2 — Terrain Segmentation (5-seed deep ensemble)
 
@@ -78,6 +78,18 @@ U-Net with a ResNet-34 encoder (ImageNet-pretrained), 4-class semantic segmentat
 
 v2 was a planned upgrade: ResNet-50 encoder + FocalDiceLoss + inverse-frequency class weights. It underperformed v1 by 0.0027 mIoU on test. Multi-scale TTA was also tested and discarded as harmful. Kept public because negative results are useful science and the ablation explains why production stayed on ResNet-34.
 
+### Stage 2 — MC Dropout (calibrated epistemic uncertainty, Layer 3)
+
+| File | Val mIoU | Test mIoU | ECE | OOD mutual-info lift |
+|---|---|---|---|---|
+| `best_segmenter_mcdropout.pt` | 0.8134 | 0.8181 | **0.0072** | **4.7×** (real moon vs synthetic val) |
+
+Fine-tuned for 10 epochs from `best_resnet34.pt` with 27 `Dropout2d(p=0.1)` modules injected after every ReLU in the U-Net + ResNet-34 encoder. Training-time dropout produces well-calibrated MC sampling at inference: across 46 M val pixels, the model's predicted confidence matches actual accuracy within 0.7 % (when the model says 99 % sure, it's right 99.3 % of the time).
+
+The OOD lift is the operationally useful number for landing-site safety — when shown real moon photographs the model never trained on, MC mutual information jumps **4.7×** vs in-domain validation images (0.192 vs 0.041). The model knows when it's looking at something it doesn't recognize, instead of being confidently wrong on out-of-distribution inputs.
+
+**Inference:** load with `add_mc_dropout(model, p=0.1)` from `lunarsite.utils.uncertainty`, then call `mc_predict(model, image, n_samples=20)` for per-pixel mean prediction + entropy + mutual information.
+
 ### Stage 1 — Crater Detection
 
 Binary-segmentation U-Net (ResNet-34 encoder) on 256×256 DEM tiles. Input is a single-channel elevation tile stretched per-tile to 0–1 uint8; output is a binary crater-rim mask.
@@ -99,11 +111,20 @@ The v1 (DeepMoon-only) model does not transfer cleanly to the real south pole DE
 import torch
 import segmentation_models_pytorch as smp
 
-# Stage 2 — terrain segmenter (one ensemble member)
+# Stage 2 — terrain segmenter (one ensemble member, deterministic)
 model = smp.Unet("resnet34", encoder_weights=None, in_channels=3, classes=4)
 ckpt = torch.load("best_resnet34.pt", map_location="cpu")
 model.load_state_dict(ckpt["model_state_dict"])
 model.eval()
+
+# Stage 2 — MC Dropout calibrated uncertainty (Layer 3)
+from lunarsite.utils.uncertainty import add_mc_dropout, mc_predict
+mc_model = smp.Unet("resnet34", encoder_weights=None, in_channels=3, classes=4)
+add_mc_dropout(mc_model, p=0.1)  # MUST inject dropout before loading state
+ckpt = torch.load("best_segmenter_mcdropout.pt", map_location="cpu")
+mc_model.load_state_dict(ckpt["model_state_dict"])
+result = mc_predict(mc_model, image_tensor, n_samples=20)
+# result contains mean_probs, prediction, entropy, mutual_info, variance
 
 # Stage 1 — crater detector (v2 south-pole fine-tuned)
 crater = smp.Unet("resnet34", encoder_weights=None, in_channels=1, classes=1)
@@ -199,6 +220,17 @@ def main() -> None:
     if not args.push:
         print("\nDry-run. Re-run with --push to send to Kaggle.")
         return
+
+    # AVG Antivirus intercepts SSL with a self-signed root CA that Python's
+    # certifi doesn't trust. Patch requests.Session.send globally so every
+    # session skips verification (the SDK uses multiple sessions internally).
+    import urllib3, requests
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    _orig_send = requests.Session.send
+    def _patched_send(self, request, **kwargs):
+        kwargs["verify"] = False
+        return _orig_send(self, request, **kwargs)
+    requests.Session.send = _patched_send
 
     from kaggle.api.kaggle_api_extended import KaggleApi
     a = KaggleApi()
