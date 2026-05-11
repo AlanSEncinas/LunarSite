@@ -45,14 +45,6 @@ Pivoted off the original 4-week dark-terrain plan; collapsed the engineering sco
 | 2026-04-18 | **Stage 3 PSR features** — `psr_fraction` and `illumination_min_pct` from PGDA AVGVISIB raster. `illumination_min_pct` lands in top-7 SHAP. **0/100** top ranked cells contain any PSR ground. |
 | 2026-04-18 | **Cross-instrument PSR validation** — downloaded Fassett 2024 ShadowCam Cabeus / LCROSS archive (10.3 GB) from Zenodo. **81–85 %** of ShadowCam's deepest-observed-shadow pixels fall inside PGDA-predicted PSRs. Outputs in `outputs/shadowcam_validation/`. |
 
-## Layer 3 — End Game (deferred, content-only)
-
-Engineering is done. Remaining items are writing + outreach, not code:
-- arXiv paper on novel contributions (calibrated MC Dropout for terrain seg, PSR-aware site scoring, cross-instrument PSR validation against ShadowCam)
-- Commercial outreach (Intuitive Machines / Firefly / Astrobotic / ispace)
-- Community launch (Reddit, r/space, Hacker News)
-- Blog post + case study writeup
-
 Explicitly skipped (would add little credibility relative to effort):
 - Shadow-from-depth physics validation
 - HORUS dark-image enhancement validation (needs raw 19 GB ShadowCam cubes)
