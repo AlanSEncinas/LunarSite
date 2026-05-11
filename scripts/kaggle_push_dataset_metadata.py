@@ -44,7 +44,7 @@ DESCRIPTION = """\
 
 Pretrained PyTorch weights from **LunarSite**, an end-to-end ML pipeline for lunar south pole landing-site selection. Everything here has been trained, evaluated, and used to produce the results in the project's public case studies.
 
-- **Repo:** https://github.com/encinas88/Moon
+- **Repo:** https://github.com/AlanSEncinas/LunarSite
 - **Project site:** https://alanscottencinas.com
 - **Status:** Layer 3 shipped (2026-04-18) — Stage 1 (craters) + Stage 2 (terrain ensemble + MC Dropout calibrated uncertainty) + Stage 3 (PSR-aware XGBoost scorer) complete. Cross-instrument PSR validation against ShadowCam at Cabeus / LCROSS confirms 81–85 % agreement with PGDA-predicted shadow regions.
 
@@ -165,7 +165,7 @@ The key-name difference is historical (different training scripts); code in the 
 If you use these checkpoints in academic or professional work, please cite:
 
 ```
-Encinas, A. (2026). LunarSite — end-to-end ML pipeline for lunar south pole landing site selection. https://github.com/encinas88/Moon
+Encinas, A. (2026). LunarSite — end-to-end ML pipeline for lunar south pole landing site selection. https://github.com/AlanSEncinas/LunarSite
 ```
 
 ## What is NOT in this dataset
