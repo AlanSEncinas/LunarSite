@@ -99,7 +99,7 @@ Binary-segmentation U-Net (ResNet-34 encoder) on 256×256 DEM tiles. Input is a 
 | `best_craterunet_seed1.pt` | DeepMoon synthetic | 0.306 | DeepMoon val set (flip TTA) | 0.327 | — |
 | `best_craterunet_v2_southpole_seed1.pt` | DeepMoon → fine-tuned on LOLA south pole | 0.161 | LOLA 80S DEM vs Robbins ≥3 km (flip TTA, t=0.25) | **0.162** | **0.372** |
 
-The v1 (DeepMoon-only) model does not transfer cleanly to the real south pole DEM — a documented distribution-within-domain shift, not a modality shift. Fine-tuning on 334 tiles of real LOLA 20-MPP DEM with Robbins-catalog rim masks fixes it: recall on real craters jumps **+256 %** (0.155 → 0.372) for a small precision trade. v2 is the production Stage 1 model.
+The v1 (DeepMoon-only) model does not transfer cleanly to the real south pole DEM — a documented distribution-within-domain shift, not a modality shift. Fine-tuning on 334 tiles of real LOLA 20-MPP DEM with Robbins-catalog rim masks fixes it: recall on real craters jumps **+140 %** (0.155 → 0.372) for a small precision trade. v2 is the production Stage 1 model.
 
 **Why the "low" IoU is fine:** IoU is computed against 1-pixel rims on a 7600×7600 DEM. Recall (what fraction of real craters the model finds) is the operationally meaningful metric for landing-site hazard feature extraction; IoU is heavily penalized by thin-ring geometry even when the detection is spatially correct.
 

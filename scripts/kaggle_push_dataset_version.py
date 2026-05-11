@@ -126,7 +126,7 @@ FILES = [
         "on 334 real LOLA 20-MPP tiles with Robbins (>=3 km) crater-rim labels. 25 epochs, lr=1e-5, "
         "batch 8. Pre-fine-tune val IoU 0.021 | post-fine-tune val IoU 0.161. Full 7600x7600 LOLA 80S "
         "DEM eval, flip TTA, threshold 0.25: IoU 0.162 | Dice 0.279 | Recall 0.372 | Precision 0.224. "
-        "Recall up +256% vs v1 on real data (0.155 -> 0.372). IoU is low in absolute terms because "
+        "Recall up +140% vs v1 on real data (0.155 -> 0.372). IoU is low in absolute terms because "
         "it's measured against 1-pixel Robbins rims on a 7600x7600 grid — recall is the "
         "operationally meaningful metric. Used as the Stage 1 production model by "
         "scripts/crater_eval_lola.py and scripts/run_pipeline.py. Load with smp.Unet('resnet34', "

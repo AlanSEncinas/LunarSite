@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **LunarSite** — an end-to-end ML pipeline for lunar south pole landing site selection. Three-stage architecture: (1) Crater Detection CNN, (2) Terrain Hazard Segmentation, (3) XGBoost Landing Site Scorer with SHAP explainability. Python-only. Portfolio project by Alan.
 
+- **Repo:** https://github.com/AlanSEncinas/LunarSite
+- **Live demo:** https://lunarsite.streamlit.app
+- **Kaggle weights:** https://www.kaggle.com/datasets/encinas88/lunarsite-weights
+- **Kaggle fine-tune data:** https://www.kaggle.com/datasets/encinas88/lunarsite-southpole-finetune
+- **Project site:** https://alanscottencinas.com
+
 **Current status:** **Layer 3 engineering shipped (2026-04-18); project finalized (2026-05-11).** Stage 2: U-Net + ResNet-34 + Dice+CE + flip TTA, test mIoU **0.8456**; 5-seed deep ensemble at 0.8445 ± 0.0013. MC Dropout fine-tune: val mIoU 0.8134, **ECE 0.0072** across 46 M val pixels, **4.7× OOD mutual-info lift** on real moon photos ([outputs/mc_dropout_eval/](outputs/mc_dropout_eval/)). Stage 1: crater v2 fine-tuned on real LOLA south pole (recall **0.372, +140%** over DeepMoon-only). Stage 3: XGBoost scorer over 315k 1-km cells × 29 features (incl. PSR-aware `psr_fraction` and `illumination_min_pct` — the latter in top-7 SHAP); **0/100** top cells contain PSR ground. Cross-instrument validation: **81–85%** of ShadowCam's deepest-observed-shadow pixels at Cabeus / LCROSS fall inside PGDA-predicted PSRs ([outputs/shadowcam_validation/](outputs/shadowcam_validation/)). Streamlit demo at [lunarsite.streamlit.app](https://lunarsite.streamlit.app). Remaining work is content-only (blog, case study, Kaggle per-file description polish via UI); no further ML/code work planned.
 
 ## Ship Definition
