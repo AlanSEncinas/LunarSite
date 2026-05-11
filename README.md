@@ -218,12 +218,23 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 - [x] End-to-end `run_pipeline.py`
 - [x] Streamlit v2 with all three stages
 
-### Layer 3 — Validation & End Game *(post-ship)*
-- [ ] Dark Terrain module (ShadowCam, HORUS denoising, shadow-depth validation)
-- [ ] MC Dropout uncertainty on the production ResNet (beyond deep ensemble)
-- [ ] arXiv paper on novel contributions
+### Layer 3 — Validation *(engineering shipped 4/18/26)*
+- [x] MC Dropout calibrated uncertainty on production ResNet (val mIoU 0.8134, ECE 0.0072 on 46 M val pixels, 4.7× OOD mutual-info lift on real moon photos)
+- [x] Stage 3 PSR-aware features (`psr_fraction`, `illumination_min_pct` from PGDA — 0/100 top cells contain any PSR ground)
+- [x] Cross-instrument PSR validation against ShadowCam at Cabeus / LCROSS (81–85 % agreement on deepest-shadow pixels)
+- [x] Streamlit demo MC Dropout mode + PSR exposure section
+
+### Layer 3 — End Game *(deferred, content-only)*
+- [ ] arXiv paper on novel contributions (calibrated MC Dropout + PSR-aware site scoring + cross-instrument PSR validation)
 - [ ] Commercial outreach to lunar lander companies
 - [ ] Community launch (Reddit r/space, Hacker News)
+- [ ] Blog post + case study writeup
+
+**Explicitly skipped** (low credibility-per-effort):
+- Shadow-from-depth physics validation
+- HORUS dark-image enhancement validation (needs raw 19 GB ShadowCam cubes)
+- LuSNAR supplementary training data integration
+- DINOv2 encoder revisit
 
 ## License
 

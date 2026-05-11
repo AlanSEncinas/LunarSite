@@ -16,10 +16,10 @@ LunarSite has three build layers, each with a distinct role. **Layer 2 is the re
 
 **Layer 2 — Deepening (the real ship):** Layer 1 + Stage 1 crater detection + Stage 3 XGBoost scorer with LOLA features + deep ensemble uncertainty on Stage 2 + Streamlit v3 demo (coordinates → full site score + SHAP). *The foundation is proven; now you deepen it into the actual LunarSite pipeline.* Ensemble adds uncertainty rigor to Stage 2. Stage 1 adds crater detection as a parallel capability. Stage 3 brings Stages 1 and 2 together with LOLA features into the actual scorer the project is *for*. No dark terrain module, no arXiv paper. **This is LunarSite. End-to-end pipeline working is the definition of done.**
 
-**Layer 3 — Validation & End Game (post-ship, earned by shipping Layer 2 first):** Layer 2 + Dark Terrain module (ShadowCam, HORUS denoising, shadow-depth validation against LOLA) + MC Dropout uncertainty + arXiv paper + commercial outreach + community launch. *Everything in Layer 3 is about proving what Layer 2 built actually matters in the world.* Dark terrain validates the hardest edge case (permanently shadowed regions). The paper externally validates the technical contribution. Commercial outreach validates practical value. Community launch validates interest. Layer 3 is where you find out if LunarSite was worth building.
+**Layer 3 — Validation (engineering shipped 2026-04-18) + End Game (deferred):** Layer 2 + MC Dropout calibrated uncertainty (ECE 0.0072, 4.7× OOD lift) + Stage 3 PSR-aware features (psr_fraction, illumination_min_pct from PGDA — top 100 cells contain 0 PSR ground) + cross-instrument PSR validation against ShadowCam at Cabeus / LCROSS (81–85 % agreement on deepest shadow). Dark Terrain module shipped via PGDA-derived PSR detection rather than full ShadowCam HORUS pipeline (skipped HORUS denoising + shadow-from-depth as low credibility-per-effort). End-game items deferred: arXiv paper + commercial outreach + community launch + blog/case study writeup.
 
 ### Uncertainty strategy
-Deep ensembles in Tier 2, not MC Dropout. 4-5 independent ResNet-50 runs with varied random seeds (weight init, DataLoader shuffle, augmentation RNG), **identical data split and config across all members**, all siblings of the v2 winning config. MC Dropout stays in Tier 3 — the current implementation is dead code (`src/lunarsite/utils/uncertainty.py` is not imported anywhere; notebook copies only work on DINOv2, not the production ResNet).
+Both shipped: deep ensembles for Layer 2 aleatoric coverage (4-5 ResNet-34 seeds with identical data split + config) + MC Dropout for Layer 3 calibrated epistemic uncertainty (27 Dropout2d modules injected after every ReLU, fine-tuned 10 epochs from `best_resnet34.pt`, ECE 0.0072 across 46 M val pixels, 4.7× OOD mutual-info lift on real moon photos). MC Dropout was originally dead code in `src/lunarsite/utils/uncertainty.py` — now imported by `streamlit_app.py`, `scripts/mc_dropout_calibrate.py`, and `scripts/train_segmenter.py --mc-dropout`.
 
 ### Streamlit demo progression
 Build early, upgrade incrementally. Each version is independently shareable.
@@ -77,7 +77,7 @@ LunarSite uses Kaggle's free T4 GPUs for training and eval. The workflow is auto
 
 ## Architecture
 
-> **Scope note:** The architecture described here reflects the full Tier 3 vision. The Tier 2 ship excludes the Dark Terrain module (§3) and uses deep ensembles instead of MC Dropout for uncertainty. See Ship Definition above for what's in-scope for the real ship.
+> **Scope note (as shipped 2026-04-18):** All three layers shipped. Stage 2 has BOTH deep ensemble (5 seeds) AND MC Dropout calibrated uncertainty. Stage 3 includes PSR-aware features derived from PGDA. Dark Terrain shipped via PGDA + ShadowCam Cabeus cross-validation rather than the full HORUS / shadow-from-depth pipeline.
 
 Four-module pipeline with dark terrain analysis:
 
@@ -96,7 +96,7 @@ Four-module pipeline with dark terrain analysis:
 - **Segmentation encoders:** DINOv2 (primary, domain-agnostic ViT) or ResNet-34 via `segmentation_models_pytorch` (baseline).
 - **Dark terrain analysis:** Depth Anything V2 for monocular depth, shadow geometry for physics-based depth, HORUS-style denoising for PSR imagery.
 - **Uncertainty (Tier 2 ship):** Deep ensembles — 4-5 ResNet-50 runs with varied random seeds (weight init, DataLoader shuffle, augmentation RNG), identical data split and config. Epistemic uncertainty from ensemble disagreement.
-- **Uncertainty (Tier 3 future):** MC Dropout with mutual information for epistemic uncertainty, flagging low-confidence predictions in shadowed regions. Currently dead code; see Ship Definition.
+- **Uncertainty (Layer 3, shipped 2026-04-18):** MC Dropout with mutual information for epistemic uncertainty, flagging low-confidence predictions in shadowed and out-of-distribution regions. Production checkpoint: `models/best_segmenter_mcdropout.pt`. Validated calibration: ECE 0.0072 across 46 M val pixels, 4.7× OOD MI lift on real moon photos.
 - **Augmentations:** Lunar-specific shadow rotation, extreme contrast, Hapke BRDF perturbation, synthetic crater overlay.
 - **Geospatial stack:** rasterio + GDAL + pyproj for LOLA GeoTIFFs (polar stereographic, MOON_ME frame).
 - **Config:** YAML files in `configs/` per stage.
@@ -166,7 +166,7 @@ Four-module pipeline with dark terrain analysis:
 
 ---
 
-_Everything below is Tier 3 (post-ship). Do not start until Tier 2 is shipped._
+_Everything below is Tier 3. Engineering items shipped 2026-04-18; remaining items are content / outreach only (paper, blog, commercial outreach, community launch)._
 
 ### Phase 5: Dark Terrain Analysis Module  _(Tier 3, in progress)_
 - [x] Depth estimation module (Depth Anything V2 wrapper, shadow-based depth) — code exists, not validated
