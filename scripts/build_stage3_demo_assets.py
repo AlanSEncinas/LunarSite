@@ -249,6 +249,20 @@ def main() -> None:
     print(f"  Top 100 cells: mean PSR {psr_stats['top_100']['mean_psr_fraction']:.4f}, "
           f"{psr_stats['top_100']['cells_with_any_psr']} have any PSR pixel")
 
+    # ShadowCam validation — stage the side-by-side comparisons + agreement
+    # JSON so the Streamlit demo can display the cross-instrument result.
+    shadowcam_src = REPO_ROOT / "outputs" / "shadowcam_validation"
+    if shadowcam_src.exists():
+        print("Copying ShadowCam cross-instrument validation...")
+        scval = stage3 / "shadowcam_validation"
+        scval.mkdir(parents=True, exist_ok=True)
+        for fname in ["side_by_side_topillum-avg.png",
+                      "side_by_side_bottomillum-avg.png",
+                      "psr_agreement.json"]:
+            if (shadowcam_src / fname).exists():
+                shutil.copy(shadowcam_src / fname, scval / fname)
+                print(f"  -> {scval / fname}")
+
     print("Building Stage 1 crater overlay demo...")
     build_crater_overlay_demo(dem, crater_mask, stage1 / "crater_overlay.png")
     print("  ->", stage1 / "crater_overlay.png")
@@ -262,6 +276,11 @@ def main() -> None:
         "psr_map": "stage3/psr_map.png",
         "top10_csv": "stage3/top10.csv",
         "artemis_overlap_json": "stage3/artemis_overlap.json",
+        "shadowcam_validation": {
+            "side_by_side_top":    "stage3/shadowcam_validation/side_by_side_topillum-avg.png",
+            "side_by_side_bottom": "stage3/shadowcam_validation/side_by_side_bottomillum-avg.png",
+            "agreement_json":      "stage3/shadowcam_validation/psr_agreement.json",
+        },
         "n_cells": int(len(rk)),
         "n_suitable": int(rk["suitable_cassa"].sum()),
         "n_features": int(len(feats.columns) - 5),  # minus cell_id, lon, lat, x_m, y_m

@@ -221,6 +221,11 @@
       },
       "psr_threshold_pct": 0.5,
       "total_psr_cells_in_grid": 25891
+    },
+    "shadowcam_validation": {
+      "side_by_side_top": "stage3/shadowcam_validation/side_by_side_topillum-avg.png",
+      "side_by_side_bottom": "stage3/shadowcam_validation/side_by_side_bottomillum-avg.png",
+      "agreement_json": "stage3/shadowcam_validation/psr_agreement.json"
     }
   },
   "stage1": {

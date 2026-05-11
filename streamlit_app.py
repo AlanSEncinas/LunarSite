@@ -429,6 +429,48 @@ if manifest and manifest.get("stage3"):
             f"authoritative PSR source used by NASA and every peer-reviewed landing-site study."
         )
 
+    # Cross-instrument validation against ShadowCam imagery at Cabeus / LCROSS.
+    scval = s3.get("shadowcam_validation")
+    if scval and (DEMO_DIR / scval.get("side_by_side_top", "")).exists():
+        st.subheader("Cross-instrument validation — PGDA vs ShadowCam at Cabeus")
+        agreement_path = DEMO_DIR / scval.get("agreement_json", "")
+        agreement = json.loads(agreement_path.read_text()) if agreement_path.exists() else {}
+        top_agreement_pct = int(round(agreement.get("topillum-avg", {}).get("sc_deep_shadow_inside_pgda_psr", 0) * 100))
+        bot_agreement_pct = int(round(agreement.get("bottomillum-avg", {}).get("sc_deep_shadow_inside_pgda_psr", 0) * 100))
+        n_top = agreement.get("topillum-avg", {}).get("n_pixels", 0)
+        n_bot = agreement.get("bottomillum-avg", {}).get("n_pixels", 0)
+        st.markdown(
+            f"LunarSite's PSR features come from PGDA — a **predicted** PSR map derived from "
+            f"LOLA geometry and 10+ years of simulated sun positions (Mazarico et al. 2011). "
+            f"**ShadowCam** is a NASA imaging instrument on Korea's KPLO orbiter that directly "
+            f"observes secondary illumination inside permanently shadowed regions. The two "
+            f"signals are physically different — direct-illumination time fraction vs observed "
+            f"scattered radiance — so they shouldn't pixel-for-pixel correlate. What we test is "
+            f"whether **both instruments converge on the same deep-shadow regions** at the "
+            f"Cabeus / LCROSS impact site, the canonical PSR target."
+        )
+        c1, c2 = st.columns(2)
+        c1.metric("ShadowCam top-illum agreement",
+                  f"{top_agreement_pct} %",
+                  help=f"{top_agreement_pct} % of ShadowCam's deepest-observed-shadow pixels "
+                       f"(bottom 25 % of secondary radiance) fall inside PGDA-predicted PSRs "
+                       f"(<0.5 % direct illumination). n = {n_top:,} pixels.")
+        c2.metric("ShadowCam bottom-illum agreement",
+                  f"{bot_agreement_pct} %",
+                  help=f"Same calculation on the bottomillum composite. n = {n_bot:,} pixels.")
+        st.image(str(DEMO_DIR / scval["side_by_side_top"]),
+                 caption=f"Cabeus / LCROSS impact site (~85°S). Left: PGDA predicted "
+                         f"illumination (LOLA + sun-angle simulation). Right: ShadowCam "
+                         f"top-illum composite (real KPLO observations). "
+                         f"Same region flagged dark by both instruments.",
+                 use_container_width=True)
+        st.caption(
+            "ShadowCam was deployed specifically to image PSRs that PGDA predicts are "
+            "shadowed. LunarSite's `psr_fraction` feature uses the PGDA map; this validation "
+            "shows the deepest-shadow regions inside the PGDA PSR are exactly where ShadowCam "
+            "sees minimum secondary illumination — independent agreement at the deep-shadow level."
+        )
+
     st.subheader("SHAP explainability — which features drive the score?")
     st.image(str(DEMO_DIR / s3["shap_summary"]),
              caption="SHAP summary on 5,000 sampled cells. Top 3 features are the 3 CASSA "

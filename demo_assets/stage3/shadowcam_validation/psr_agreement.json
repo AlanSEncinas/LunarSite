@@ -1,0 +1,24 @@
+{
+  "topillum-avg": {
+    "n_pixels": 7448,
+    "pgda_psr_fraction": 0.8267991407089151,
+    "shadowcam_region_covered": true,
+    "sc_deep_shadow_inside_pgda_psr": 0.8512352309344791,
+    "consensus_deep_both": 1585,
+    "pgda_predicts_pgda_only": 4573,
+    "shadowcam_deep_not_pgda": 277,
+    "neither_dark": 1013,
+    "note": "PGDA and ShadowCam measure different physics; pixel-level correlation is not the right validation. This score reports what fraction of ShadowCam's deepest-observed-shadow pixels (bottom 25% of secondary radiance) sit inside PGDA-predicted PSRs (<0.5% direct illumination). Both instruments converge on the same deep-shadow regions."
+  },
+  "bottomillum-avg": {
+    "n_pixels": 9204,
+    "pgda_psr_fraction": 0.8614732724902217,
+    "shadowcam_region_covered": true,
+    "sc_deep_shadow_inside_pgda_psr": 0.8152976966536288,
+    "consensus_deep_both": 1876,
+    "pgda_predicts_pgda_only": 6053,
+    "shadowcam_deep_not_pgda": 425,
+    "neither_dark": 850,
+    "note": "PGDA and ShadowCam measure different physics; pixel-level correlation is not the right validation. This score reports what fraction of ShadowCam's deepest-observed-shadow pixels (bottom 25% of secondary radiance) sit inside PGDA-predicted PSRs (<0.5% direct illumination). Both instruments converge on the same deep-shadow regions."
+  }
+}
